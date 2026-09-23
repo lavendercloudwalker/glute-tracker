@@ -322,6 +322,8 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .wuchip small{display:block;font-size:10.5px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
 .wuchip.on{background:rgba(255,226,89,.18);border-color:var(--yellow);box-shadow:0 0 10px rgba(255,226,89,.4)}
 .wuchip.on b{color:var(--yellow)}
+.timer #tsound{padding:0;width:42px;display:grid;place-items:center}
+.timer #tsound.muted{opacity:.55}
 </style>
 </head>
 <body>
@@ -329,7 +331,7 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
   <header class="top" id="hdr"></header>
   <main id="main"><p class="muted">Loading your plan…</p></main>
 </div>
-<div class="timer" id="timer"><div class="in"><span class="t" id="tt">0:00</span><span class="tl" id="tl">Rest</span><button data-a="t30">+30s</button><button data-a="tstop">Done</button></div></div>
+<div class="timer" id="timer"><div class="in"><span class="t" id="tt">0:00</span><span class="tl" id="tl">Rest</span><button data-a="tsound" id="tsound" aria-label="Rest sound on or off"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button><button data-a="t30">+30s</button><button data-a="tstop">Done</button></div></div>
 <nav class="tabs"><div class="in">
   <button data-a="tab" data-v="day" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14a7 7 0 0 1 14 0"/><path d="M2 14h20M5 17.5h14M8 21h8"/></svg><span>Today</span></button>
   <button data-a="tab" data-v="food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7c-1.5-1.3-4-1.8-5.8-.4C4 8.3 4.2 12.5 6 16c1.3 2.6 3.2 4.6 4.6 4 .6-.3 1-.5 1.4-.5s.8.2 1.4.5c1.4.6 3.3-1.4 4.6-4 1.8-3.5 2-7.7-.2-9.4C16 5.2 13.5 5.7 12 7z"/><path d="M12 7c0-2 1-3.5 2.8-4"/></svg><span>Food</span></button>
@@ -1168,7 +1170,15 @@ function renderGuide(){
  </div>`;
 }
 function renderSettings(){
- return `<div class="card"><h2>Programme start</h2><div class="fld"><label>Week 1 Monday</label><input type="date" data-set="startDate" value="${esc(store.settings.startDate)}"></div>
+ const S=store.settings.sound;const sb=(k,v,t)=>`<button class="${String(S[k])===String(v)?'on':''}" data-a="sndset" data-k="${k}" data-v="${v}">${t}</button>`;
+ return `<div class="card"><h2>Rest timer sound</h2>
+ <p class="small muted" style="margin:0 0 10px">A retro chime when your rest is over, with optional beeps for the last 3 seconds. It plays over your music without pausing it.</p>
+ <h3>Sound</h3><div class="seg">${sb('on',true,'On')}${sb('on',false,'Off')}</div>
+ <h3>3-2-1 countdown beeps</h3><div class="seg">${sb('count',true,'On')}${sb('count',false,'Off')}</div>
+ <h3>Volume</h3><div class="seg">${sb('vol','low','Low')}${sb('vol','med','Medium')}${sb('vol','high','High')}</div>
+ <button class="big" style="margin-top:14px" data-a="sndtest">Play test sound</button>
+ <p class="small muted" style="margin:10px 0 0">Keep the app open on screen during rest. iPhones silence web app sounds when the ring/silent switch is on silent or the screen is locked, and the timer bar still turns green when rest is up.</p></div>
+ <div class="card"><h2>Programme start</h2><div class="fld"><label>Week 1 Monday</label><input type="date" data-set="startDate" value="${esc(store.settings.startDate)}"></div>
  <p class="small muted">Changing this moves which week counts as "today". Your logged data stays attached to its week and day.</p></div>
  <div class="card"><h2>Storage</h2><p class="status" id="savestatus">${storageLabel()}</p>
  <div class="seg"><button data-a="backup">Backup file</button><button data-a="restore">Restore backup</button></div></div>
@@ -1218,7 +1228,10 @@ document.addEventListener('click',ev=>{
   const r=setsFor(ex,w,getPath(getDay(w,dk),'checkin.light'));
   mutDay(w,dk,o=>{for(let i=0;i<r.s+r.opt;i++){const src=ps[i]||ps[ps.length-1];const k='ex.'+ex.id+'.sets.'+i+'.kg';if(src&&num(src.kg)!=null&&!getPath(o,k))setPath(o,k,src.kg)}});render()}
  else if(a==='complete'){const r0=b.getBoundingClientRect();mutDay(w,dk,o=>{o.complete=!o.complete});if(getDay(w,dk).complete){bloom(r0.left+r0.width/2,r0.top);toast('Session complete. Legend.')}render()}
- else if(a==='t30'){timer.end+=30000}
+ else if(a==='t30'){timer.end=Math.max(timer.end,Date.now())+30000;document.getElementById('timer').classList.remove('over');document.getElementById('tl').textContent=timer.label||'Rest';scheduleRestSounds();tick()}
+ else if(a==='tsound'){store.settings.sound.on=!store.settings.sound.on;cacheLocal();soundIcon();if(store.settings.sound.on){unlockAudio();scheduleRestSounds()}else cancelSounds();toast(store.settings.sound.on?'Rest sound on':'Rest sound off')}
+ else if(a==='sndset'){store.settings.sound[b.dataset.k]=b.dataset.v==='true'?true:b.dataset.v==='false'?false:b.dataset.v;cacheLocal();render();if(store.settings.sound.on&&b.dataset.k!=='on'){unlockAudio()}}
+ else if(a==='sndtest'){const ctx=audioCtx();if(!ctx){toast('Sound is not supported here');return}const t=ctx.currentTime+0.05;if(store.settings.sound.count){blip(ctx,t);blip(ctx,t+1);blip(ctx,t+2)}chime(ctx,t+(store.settings.sound.count?3:0))}
  else if(a==='tstop'){stopTimer()}
  else if(a==='angle'){view.angle=b.dataset.v;render()}
  else if(a==='wutick'){const p='ex.'+b.dataset.ex+'.wu.'+b.dataset.i;let now;mutDay(w,dk,o=>{now=!getPath(o,p);setPath(o,p,now)});b.classList.toggle('on',now)}
@@ -1239,10 +1252,33 @@ document.addEventListener('click',ev=>{
 function bloom(x,y){const g=['✦','◆','▲','●','✧'],cs=['var(--pink)','var(--cyan)','var(--yellow)','var(--orange)'];for(let i=0;i<20;i++){const s=document.createElement('span');s.className='confetti';s.textContent=g[i%g.length];s.style.color=cs[i%cs.length];s.style.left=x+'px';s.style.top=y+'px';
  s.style.setProperty('--dx',(Math.random()*260-130)+'px');s.style.setProperty('--dy',(-Math.random()*260-40)+'px');s.style.setProperty('--r',(Math.random()*360-180)+'deg');s.style.animationDelay=(Math.random()*.15)+'s';
  document.body.appendChild(s);setTimeout(()=>s.remove(),2000)}}
+/* ================= REST SOUNDS ================= */
+store.settings.sound=Object.assign({on:true,count:true,vol:'med'},store.settings.sound||{});
+const SICON={on:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',off:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>'};
+const snd={ctx:null,nodes:[]};
+function audioCtx(){
+ if(!snd.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+  try{if(navigator.audioSession)navigator.audioSession.type='ambient'}catch(e){} // mix with music instead of pausing it
+  snd.ctx=new AC()}
+ if(snd.ctx.state!=='running'){try{snd.ctx.resume()}catch(e){}}
+ return snd.ctx}
+function tone(ctx,t,freq,dur,vol,type){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);
+ g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(vol,0.0002),t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+ o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+dur+0.05);snd.nodes.push(o)}
+function volLevel(){return {low:.10,med:.22,high:.4}[store.settings.sound.vol]||.22}
+function chime(ctx,t){const v=volLevel();[[523.25,0],[659.25,.11],[783.99,.22],[1046.5,.33]].forEach(([f,dt])=>tone(ctx,t+dt,f,.34,v,'triangle'));tone(ctx,t+.33,2093,.6,v*.3,'sine')}
+function blip(ctx,t){tone(ctx,t,880,.08,volLevel()*.45,'square')}
+function cancelSounds(){snd.nodes.forEach(o=>{try{o.stop(0)}catch(e){}});snd.nodes=[]}
+function scheduleRestSounds(){cancelSounds();const s=store.settings.sound;if(!s.on)return;const ctx=audioCtx();if(!ctx)return;
+ const left=(timer.end-Date.now())/1000;if(left<=0)return;const t0=ctx.currentTime+0.02;
+ if(s.count)[3,2,1].forEach(k=>{if(left-k>0.1)blip(ctx,t0+left-k)});chime(ctx,t0+left)}
+function unlockAudio(){const ctx=audioCtx();if(ctx){tone(ctx,ctx.currentTime,440,.02,.0002,'sine');snd.nodes.pop()}}
+function soundIcon(){const b=document.getElementById('tsound');if(b){b.innerHTML=store.settings.sound.on?SICON.on:SICON.off;b.classList.toggle('muted',!store.settings.sound.on)}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&timer.end>Date.now()&&document.getElementById('timer').classList.contains('show'))scheduleRestSounds()});
 /* ================= TIMER ================= */
 const timer={end:0,iv:null};
-function startTimer(sec,label){timer.end=Date.now()+sec*1000;document.getElementById('tl').textContent=label;document.getElementById('timer').classList.add('show');document.getElementById('timer').classList.remove('over');clearInterval(timer.iv);timer.iv=setInterval(tick,250);tick()}
-function stopTimer(){clearInterval(timer.iv);document.getElementById('timer').classList.remove('show')}
+function startTimer(sec,label){timer.label=label;unlockAudio();timer.end=Date.now()+sec*1000;setTimeout(scheduleRestSounds,0);soundIcon();document.getElementById('tl').textContent=label;document.getElementById('timer').classList.add('show');document.getElementById('timer').classList.remove('over');clearInterval(timer.iv);timer.iv=setInterval(tick,250);tick()}
+function stopTimer(){cancelSounds();clearInterval(timer.iv);document.getElementById('timer').classList.remove('show')}
 function tick(){const left=Math.round((timer.end-Date.now())/1000);const el=document.getElementById('timer');const a=Math.abs(left);
  document.getElementById('tt').textContent=(left<0?'+':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0');
  if(left<=0&&!el.classList.contains('over')){el.classList.add('over');document.getElementById('tl').textContent='Rest done. Next set when ready.';try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
