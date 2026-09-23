@@ -324,6 +324,25 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .wuchip.on b{color:var(--yellow)}
 .timer #tsound{padding:0;width:42px;display:grid;place-items:center}
 .timer #tsound.muted{opacity:.55}
+
+/* PR alerts + trophy wall */
+.prpop{position:fixed;left:50%;top:calc(90px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px) scale(.8);opacity:0;pointer-events:none;z-index:55;transition:opacity .25s,transform .35s cubic-bezier(.2,1.4,.4,1);width:min(92vw,420px)}
+.prpop.show{opacity:1;transform:translate(-50%,0) scale(1);pointer-events:auto}
+.prin{text-align:center;padding:18px 16px 16px;border-radius:22px;background:radial-gradient(120% 90% at 50% 0%,#4A0F66,#16052E 70%);border:2px solid var(--yellow);box-shadow:0 0 18px rgba(255,226,89,.7),0 0 60px rgba(255,60,172,.6),inset 0 0 24px rgba(255,110,199,.25)}
+.prt{font-family:var(--neon);font-size:44px;line-height:1.05;color:var(--yellow);text-shadow:0 0 6px #fff6c2,0 0 16px var(--yellow),0 0 34px var(--orange);animation:prflick 1.2s ease-in-out 2}
+@keyframes prflick{0%,100%{opacity:1}45%{opacity:1}50%{opacity:.35}55%{opacity:1}70%{opacity:.6}75%{opacity:1}}
+.prk{font-family:var(--retro);font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--cyan);text-shadow:var(--glow-cyan);margin-top:6px}
+.prd{font-family:var(--retro);font-size:19px;color:#fff;margin-top:6px}
+.prv{font-size:30px;font-weight:800;color:var(--pink);text-shadow:var(--glow-pink);margin-top:2px}
+.prp{font-size:13px;color:var(--muted);margin-top:4px}
+.setrow .sn{position:relative}
+.prb{display:block;margin:2px auto 0;width:max-content;font-family:var(--retro);font-weight:400;font-size:10px;letter-spacing:1px;color:#1A0733;background:var(--yellow);border-radius:6px;padding:1px 5px;box-shadow:0 0 8px rgba(255,226,89,.8);text-shadow:none}
+.prrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid rgba(157,107,255,.22)}
+.prtag{flex:none;min-width:48px;text-align:center;font-family:var(--retro);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#1A0733;background:var(--yellow);border-radius:8px;padding:3px 6px;box-shadow:0 0 8px rgba(255,226,89,.5)}
+.prn{flex:1;min-width:0;font-weight:600}
+.prn small,.prw small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.prn small{color:var(--pink);font-weight:700;font-size:14px}
+.prw{flex:none;text-align:right;font-family:var(--retro);font-size:13px;color:var(--cyan)}
 </style>
 </head>
 <body>
@@ -869,8 +888,70 @@ function videoFor(ex,w,dk,e){
 function videoRow(ex,w,dk,e){const v=videoFor(ex,w,dk,e);
  return `<div class="vrow"><a class="vbtn" href="${esc(v.url)}" target="_blank" rel="noopener"><span class="play">▶</span><span>${v.saved?'Watch your video':'Watch form'}<small>${esc(v.label)}</small></span></a><button class="more" data-a="vsave" data-q="${esc(v.q)}" data-l="${esc(v.label)}">${v.saved?'Change video':'Save my video'}</button></div>`}
 
+/* ================= PERSONAL RECORDS ================= */
+// Worked out from the logs every time, so editing a set keeps PRs honest.
+function prName(ex,variant){if(ex.assist&&variant!=='Lat pulldown')return 'Pull-up (assisted)';return ex.name+(variant?' ('+variant+')':'')}
+function prCompute(){
+ const flags={},events=[],best={},ladderMax={};
+ const days=Object.values(store.days).filter(o=>o&&o.ex&&PLAN[o.d]&&PLAN[o.d].ex).sort((a,b)=>orderIdx(a.w,a.d)-orderIdx(b.w,b.d));
+ days.forEach(o=>{PLAN[o.d].ex.forEach(ex=>{const e=o.ex[ex.id];if(!e||!e.sets)return;
+  const variant=e.variant||(ex.variants?ex.variants[0]:'');const lv=ex.ladder?+(e.level||currentLevel(ex.ladder,o.w,o.d,ex.id)):null;
+  const sets=Object.keys(e.sets).sort((a,b)=>a-b).map(i=>[i,e.sets[i]]).filter(([,s])=>s&&(s.done||num(s.reps)!=null||num(s.sec)!=null));
+  if(!sets.length)return;
+  let levelUp=null;
+  if(ex.ladder&&!(ex.assist&&variant==='Lat pulldown')){const m=ladderMax[ex.ladder];if(m!=null&&lv>m)levelUp={t:'level',title:LADDERS[ex.ladder].name+' level up',txt:'Level '+lv+': '+LADDERS[ex.ladder].levels[lv-1][0],prev:'Level '+m};ladderMax[ex.ladder]=Math.max(m||0,lv)}
+  sets.forEach(([i,s],n)=>{const types=[];if(n===0&&levelUp)types.push(levelUp);
+   const kg=num(s.kg),reps=num(s.reps);
+   if(ex.unit==='kg'&&ex.assist&&variant!=='Lat pulldown'){ // assisted pull-ups: less assistance is the win
+    if(kg!=null&&reps){const key='assist';const b=best[key]||(best[key]={name:'Pull-up (assisted)',kind:'assist',minKg:null,repsAt:{},count:0});const [lo]=rng(ex.reps);
+     if(b.count){if(reps>=lo&&kg<b.minKg)types.push({t:'assist',title:'Pull-up (assisted)',txt:kg+' kg assistance × '+reps,prev:'least before '+b.minKg+' kg'});
+      else if(b.repsAt[kg]!=null&&reps>b.repsAt[kg])types.push({t:'reps',title:'Pull-up (assisted)',txt:kg+' kg assistance × '+reps,prev:'best at '+kg+' kg: '+b.repsAt[kg]+' reps'})}
+     if(reps>=lo)b.minKg=b.minKg==null?kg:Math.min(b.minKg,kg);b.repsAt[kg]=Math.max(b.repsAt[kg]||0,reps);b.count++;b.top={kg,reps,w:o.w,d:o.d}}
+   }else if(ex.unit==='kg'){
+    if(reps){const bw=kg==null;const key=prName(ex,variant)+(bw?'|bw':'');const b=best[key]||(best[key]={name:prName(ex,variant)+(bw?', bodyweight':''),kind:bw?'bw':'kg',maxKg:null,maxReps:0,repsAt:{},count:0,top:null});
+     if(bw){if(b.count&&reps>b.maxReps)types.push({t:'reps',title:b.name,txt:reps+' reps',prev:'best '+b.maxReps});b.maxReps=Math.max(b.maxReps,reps);if(!b.top||reps>=b.top.reps)b.top={reps,w:o.w,d:o.d}}
+     else{if(b.count){if(kg>b.maxKg)types.push({t:'load',title:b.name,txt:kg+' kg × '+reps,prev:'heaviest before '+b.maxKg+' kg'});
+       else if(b.repsAt[kg]!=null&&reps>b.repsAt[kg])types.push({t:'reps',title:b.name,txt:kg+' kg × '+reps,prev:'best at '+kg+' kg: '+b.repsAt[kg]+' reps'})}
+      b.maxKg=b.maxKg==null?kg:Math.max(b.maxKg,kg);b.repsAt[kg]=Math.max(b.repsAt[kg]||0,reps);
+      if(!b.top||kg>b.top.kg||(kg===b.top.kg&&reps>b.top.reps))b.top={kg,reps,w:o.w,d:o.d}}
+     b.count++}
+   }else if(ex.unit==='bw'){
+    if(reps){const name=ex.ladder?LADDERS[ex.ladder].name+' L'+lv+' ('+LADDERS[ex.ladder].levels[lv-1][0]+')':ex.name;const b=best[name]||(best[name]={name,kind:'bw',maxReps:0,count:0,top:null});
+     if(b.count&&reps>b.maxReps)types.push({t:'reps',title:name,txt:reps+' reps',prev:'best '+b.maxReps});b.maxReps=Math.max(b.maxReps,reps);b.count++;if(!b.top||reps>=b.top.reps)b.top={reps,w:o.w,d:o.d}}
+   }else if(ex.unit==='sec'||ex.unit==='skill'){
+    const sec=num(s.sec);if(sec){const name=ex.unit==='skill'?'Handstand L'+lv+' hold':ex.name;const b=best[name]||(best[name]={name,kind:'sec',maxSec:0,count:0,top:null});
+     if(b.count&&sec>b.maxSec)types.push({t:'time',title:name,txt:sec+' s',prev:'best '+b.maxSec+' s'});b.maxSec=Math.max(b.maxSec,sec);b.count++;if(!b.top||sec>=b.top.sec)b.top={sec,w:o.w,d:o.d}}
+   }
+   if(types.length){flags[o.w+'-'+o.d+'-'+ex.id+'-'+i]=types;types.forEach(t=>events.push(Object.assign({w:o.w,d:o.d},t)))}
+  })})});
+ return {flags,events,best};
+}
+let PRC={flags:{},events:[],best:{}};
+function prFanfare(){const s=store.settings.sound;if(!s||!s.on)return;const ctx=audioCtx();if(!ctx)return;const t=ctx.currentTime+0.03,v=volLevel();
+ [[783.99,0],[1046.5,.09],[1318.5,.18],[1568,.27]].forEach(([f,dt])=>tone(ctx,t+dt,f,.18,v*.9,'square'));[1046.5,1318.5,1568].forEach(f=>tone(ctx,t+.4,f,.7,v*.5,'triangle'))}
+function showPR(types){
+ const main=types.find(t=>t.t!=='level')||types[0];const lvl=types.find(t=>t.t==='level');
+ const kind={load:'Heaviest ever',reps:'Most reps',assist:'Least assistance',time:'Longest hold',level:'New level'}[main.t];
+ let el=document.getElementById('prpop');if(!el){el=document.createElement('div');el.id='prpop';el.className='prpop';el.setAttribute('role','status');document.body.appendChild(el);el.addEventListener('click',()=>el.classList.remove('show'))}
+ el.innerHTML=`<div class="prin"><div class="prt">New PR</div><div class="prk">${esc(kind)}</div><div class="prd">${esc(main.title)}</div><div class="prv">${esc(main.txt)}</div><div class="prp">${esc(main.prev)}</div>${lvl&&lvl!==main?`<div class="prp" style="color:var(--yellow)">${esc(lvl.txt)}</div>`:''}</div>`;
+ el.classList.remove('show');void el.offsetWidth;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),4200);
+ bloom(window.innerWidth/2,Math.min(220,window.innerHeight*.3));prFanfare();
+}
+function renderPRWall(){
+ const c=PRC=prCompute();const tp=todayPos();const bests=Object.values(c.best).filter(b=>b.count>0&&b.top);
+ const thisWeek=c.events.filter(e=>e.w===tp.w).length;
+ let h=`<div class="card prwall"><h2>Personal records</h2><div class="cstats" style="grid-template-columns:1fr 1fr"><div class="cstat"><span class="cv">${c.events.length}</span><span class="cl">PRs so far</span></div><div class="cstat"><span class="cv">${thisWeek}</span><span class="cl">PRs this week</span></div></div>`;
+ if(!bests.length){h+=`<p class="small muted" style="margin:0">Your best lifts appear here as you log. Tick a set that beats a previous best and you'll get a New PR alert.</p></div>`;return h}
+ const recent=c.events.slice(-8).reverse();
+ if(recent.length){h+=`<h3>Latest PRs</h3>`+recent.map(e=>`<div class="prrow"><span class="prtag">${({load:'kg',reps:'reps',assist:'assist',time:'time',level:'level'})[e.t]}</span><span class="prn">${esc(e.title)}<small>${esc(e.txt)}</small></span><span class="prw">Wk ${e.w}<small>${DAYNAMES[DAYS.indexOf(e.d)].slice(0,3)}</small></span></div>`).join('')}
+ h+=`<h3>Current bests</h3>`+bests.sort((a,b)=>a.name.localeCompare(b.name)).map(b=>{const t=b.top;const v=b.kind==='kg'?t.kg+' kg × '+t.reps:b.kind==='assist'?(b.minKg!=null?b.minKg+' kg assistance':t.kg+' kg assistance')+' × '+t.reps:b.kind==='sec'?t.sec+' s':t.reps+' reps';
+  return `<div class="prrow"><span class="prn">${esc(b.name)}<small>${esc(v)}</small></span><span class="prw">Wk ${t.w}<small>${DAYNAMES[DAYS.indexOf(t.d)].slice(0,3)}</small></span></div>`}).join('');
+ return h+`</div>`;
+}
+
 /* ================= RENDER: DAY ================= */
 function renderDay(){
+ PRC=prCompute();
  const {w,d}=view,dk=DAYS[d],p=PLAN[dk],o=getDay(w,dk),dt=dateOf(w,d);
  const light=getPath(o,'checkin.light');
  let h=`<p class="daytitle">${esc(p.title)}</p><p class="daysub">${fmtDate(dt)}</p><p class="daysub">${esc(p.sub)}</p>`;
@@ -987,7 +1068,7 @@ function renderEx(w,dk,o,ex,light){
  h+=renderWarmup(ex,w,dk,e);
  const prevSets=prev?loggedSets(prev.e):[];
  const row=(i,isOpt)=>{const s=(e.sets&&e.sets[i])||{},ps=prevSets[i]||prevSets[prevSets.length-1]||{};
-  return `<div class="setrow ${cols.length===1?'one':''} ${isOpt?'optrow':''}"><span class="sn">${ex.kind==='skill'?'':i+1}</span>
+  return `<div class="setrow ${cols.length===1?'one':''} ${isOpt?'optrow':''}"><span class="sn">${ex.kind==='skill'?'':i+1}${PRC.flags[w+'-'+dk+'-'+ex.id+'-'+i]?'<b class="prb">PR</b>':''}</span>
   ${cols.map(c=>`<div><input inputmode="${c[2]}" data-f="ex.${ex.id}.sets.${i}.${c[0]}" value="${esc(s[c[0]]||'')}" placeholder="${esc(ps[c[0]]||'')}" aria-label="Set ${i+1} ${c[1]}"><span class="unit">${esc(c[1])}</span></div>`).join('')}
   <button class="tick ${s.done?'on':''}" data-a="tick" data-ex="${ex.id}" data-i="${i}" aria-label="Set ${i+1} done">✓</button></div>`};
  h+='<div class="sets">';for(let i=0;i<r.s;i++)h+=row(i,false);
@@ -1091,7 +1172,7 @@ function spark(points){
  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>${points.map(p=>`<circle cx="${px(p[0])}" cy="${py(p[1])}" r="3.5" fill="var(--accent)"/>`).join('')}</svg>`;
 }
 function renderProgress(){
- let h=renderConsistency();
+ let h=renderConsistency()+renderPRWall();
  // Measurements
  const rows=CP_ORDER.map(k=>{const [w,d]=k.split('-');const m=getDay(+w,d).meas||{};return{k,label:CHECKPOINTS[k],w:+w,d,m}});
  const b=rows[0].m;const dl=(a,bb)=>{a=num(a);bb=num(bb);return a!=null&&bb!=null?(a-bb>=0?'+':'')+Math.round((a-bb)*10)/10:''};
@@ -1223,7 +1304,8 @@ document.addEventListener('click',ev=>{
  else if(a==='variant'){mutDay(w,dk,o=>setPath(o,'ex.'+b.dataset.ex+'.variant',b.dataset.v));render()}
  else if(a==='tick'){const ex=findEx(dk,b.dataset.ex);const p='ex.'+b.dataset.ex+'.sets.'+b.dataset.i+'.done';let now;
   mutDay(w,dk,o=>{now=!getPath(o,p);setPath(o,p,now)});b.classList.toggle('on',now);updateCount(b.closest('.ex'),p);
-  if(now&&ex)startTimer(ex.restS,ex.name+', rest '+ex.rest);}
+  if(now&&ex)startTimer(ex.restS,ex.name+', rest '+ex.rest);
+  if(now){PRC=prCompute();const f=PRC.flags[w+'-'+dk+'-'+b.dataset.ex+'-'+b.dataset.i];const sn=b.closest('.setrow')&&b.closest('.setrow').querySelector('.sn');if(sn&&f&&!sn.querySelector('.prb'))sn.insertAdjacentHTML('beforeend','<b class="prb">PR</b>');if(f)showPR(f)}}
  else if(a==='uselast'){const ex=findEx(dk,b.dataset.ex);const prev=findPrev(ex.id,w,dk);if(!prev)return;const ps=loggedSets(prev.e);
   const r=setsFor(ex,w,getPath(getDay(w,dk),'checkin.light'));
   mutDay(w,dk,o=>{for(let i=0;i<r.s+r.opt;i++){const src=ps[i]||ps[ps.length-1];const k='ex.'+ex.id+'.sets.'+i+'.kg';if(src&&num(src.kg)!=null&&!getPath(o,k))setPath(o,k,src.kg)}});render()}
