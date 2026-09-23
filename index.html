@@ -223,7 +223,7 @@ nav.tabs button{border:0;background:none;min-height:64px;display:flex;flex-direc
 nav.tabs button svg{width:24px;height:24px}
 nav.tabs button.on{color:var(--pink);text-shadow:0 0 8px var(--pink)}
 nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
-.toast{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#1A0733;border:1.5px solid var(--pink);color:#fff;padding:8px 16px;border-radius:999px;font-size:14px;z-index:9;display:none;box-shadow:0 0 16px rgba(255,60,172,.5);white-space:nowrap}
+.toast{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#1A0733;border:1.5px solid var(--pink);color:#fff;padding:8px 16px;border-radius:999px;font-size:14px;z-index:60;display:none;box-shadow:0 0 16px rgba(255,60,172,.5);white-space:nowrap}
 .confetti{position:fixed;pointer-events:none;z-index:20;font-size:18px;animation:fall 1.7s ease-out forwards;text-shadow:0 0 8px currentColor}
 @keyframes fall{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.confetti{display:none}}
@@ -253,6 +253,7 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .clegend span{display:flex;align-items:center;gap:5px}
 .clegend i{width:11px;height:11px;border-radius:3px;display:inline-block}
 /* Food tab */
+.cerr{margin:12px 0 0;padding:9px 12px;border:1.5px solid var(--red);border-radius:12px;background:rgba(255,84,112,.12);color:#FFD0D8;font-weight:600}
 .ftotals .fbig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .fbig>div{text-align:center;border:1.5px solid rgba(255,110,199,.45);border-radius:14px;padding:10px 4px;background:rgba(10,3,26,.55)}
 .bn{display:block;font-family:var(--retro);font-size:38px;line-height:1.05;color:#fff;text-shadow:0 0 10px rgba(255,110,199,.8)}
@@ -279,7 +280,7 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .shead2{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid rgba(255,110,199,.3)}
 .shead2 h2{margin:0;font-size:21px}
 .xbtn{flex:none;width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,110,199,.5);background:transparent;color:var(--pink);font-size:20px;line-height:1}
-.sbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px calc(30px + env(safe-area-inset-bottom,0px))}
+.sbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px calc(45vh + env(safe-area-inset-bottom,0px))}
 .stabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px}
 .stabs button{border:1.5px solid rgba(45,226,230,.4);background:rgba(10,3,26,.6);border-radius:12px;min-height:40px;font-size:13px;font-weight:600;padding:0 2px}
 .stabs button.on{background:var(--cyan);color:#12052B;border-color:var(--cyan);box-shadow:var(--glow-cyan)}
@@ -590,7 +591,7 @@ let sheet={open:false};
 function openSheet(meal,opts){sheet=Object.assign({open:true,meal,tab:'search',q:'',results:[],loading:false,error:'',sel:null,g:'',unit:'g',editId:null,quick:{},create:{basis:'100'}},opts||{});renderSheet();document.body.style.overflow='hidden'}
 function closeSheet(){stopScan();sheet={open:false};const el=document.getElementById('sheet');el.innerHTML='';el.classList.remove('show');document.body.style.overflow=''}
 function localMatches(q){q=q.toLowerCase().trim();const pool=[...store.myFoods,...BUILTIN];if(!q)return[];return pool.filter(f=>(f.name+' '+(f.brand||'')).toLowerCase().includes(q)).slice(0,20)}
-function foodRow(f,k,sub){return `<button class="frow" data-a="fpick" data-k="${k}"><span class="fn">${esc(f.name)}${f.brand?`<small>${esc(f.brand)}</small>`:''}</span><span class="fm">${Math.round(f.per100.kcal)} kcal<small>P ${r1(f.per100.p)} per 100 g${sub?', '+sub:''}</small></span></button>`}
+function foodRow(f,k,sub){return `<button class="frow" data-a="fpick" data-k="${k}"><span class="fn">${esc(f.name)}${f.brand?`<small>${esc(f.brand)}</small>`:''}</span><span class="fm">${Math.round(f.per100.kcal)} kcal<small>P ${r1(f.per100.p)} ${f.unitOnly?'per serving':'per 100 g'}${sub?', '+sub:''}</small></span></button>`}
 let pickList=[];
 function renderSheet(){
  const el=document.getElementById('sheet');if(!sheet.open){el.innerHTML='';el.classList.remove('show');return}
@@ -630,9 +631,9 @@ function renderSheet(){
     <div class="fld"><label>Name</label><input data-sf="create.name" value="${esc(c.name||'')}"></div>
     <div class="fld"><label>Brand (optional)</label><input data-sf="create.brand" value="${esc(c.brand||'')}"></div>
     <div class="seg" style="margin-top:10px"><button class="${c.basis==='100'?'on':''}" data-a="fbasis" data-v="100">Per 100 g</button><button class="${c.basis==='serv'?'on':''}" data-a="fbasis" data-v="serv">Per serving</button></div>
-    ${c.basis==='serv'?`<div class="grid2"><div class="fld"><label>Serving size (g)</label><input inputmode="decimal" data-sf="create.sg" value="${esc(c.sg||'')}"></div><div class="fld"><label>Serving name</label><input data-sf="create.sl" value="${esc(c.sl||'')}" placeholder="e.g. 1 bar"></div></div>`:''}
+    ${c.basis==='serv'?`<div class="grid2"><div class="fld"><label>Serving size in g (optional)</label><input inputmode="decimal" data-sf="create.sg" value="${esc(c.sg||'')}"></div><div class="fld"><label>Serving name</label><input data-sf="create.sl" value="${esc(c.sl||'')}" placeholder="e.g. 1 bar"></div></div>`:''}
     <div class="grid3" style="margin-top:10px">${[['kcal','kcal'],['p','Protein g'],['c','Carbs g'],['f','Fat g'],['fib','Fibre g']].map(x=>`<div class="fld"><label>${x[1]}</label><input inputmode="decimal" data-sf="create.${x[0]}" value="${esc(c[x[0]]||'')}"></div>`).join('')}</div>
-    <button class="big" data-a="fcreate">Save food</button></details>`;
+    ${sheet.createErr?`<p id="createerr" class="cerr">${esc(sheet.createErr)}</p>`:''}<button class="big" data-a="fcreate">Save food</button></details>`;
   }else{
    const q=sheet.quick;
    body+=`<p class="muted small">For restaurant meals or anything you only know the numbers for.</p>
@@ -649,10 +650,10 @@ function renderAmount(){
  const f=sheet.sel;const m=entryMacros({g:amountGrams(),per100:f.per100});
  const mealChips=MEALS.map(x=>`<button class="${sheet.meal===x[0]?'on':''}" data-a="fmealpick" data-v="${x[0]}">${x[1]}</button>`).join('');
  return `<div class="amt"><p class="aname">${esc(f.name)}</p>${f.brand?`<p class="muted" style="margin:0">${esc(f.brand)}</p>`:''}
-  <p class="muted small" style="margin:4px 0 0">Per 100 g: ${macroLine(f.per100)}${f.src==='builtin'?' (typical values)':''}</p>
+  <p class="muted small" style="margin:4px 0 0">${f.unitOnly?'Per serving':'Per 100 g'}: ${macroLine(f.per100)}${f.src==='builtin'?' (typical values)':''}</p>
   <div class="arow"><input id="amtin" inputmode="decimal" data-sf="g" value="${esc(sheet.g)}" aria-label="Amount">
-   ${f.servingG?`<div class="seg"><button class="${sheet.unit==='g'?'on':''}" data-a="funit" data-v="g">grams</button><button class="${sheet.unit==='serv'?'on':''}" data-a="funit" data-v="serv">servings</button></div>`:'<span class="muted">grams</span>'}</div>
-  ${f.servingG&&sheet.unit==='serv'?`<p class="muted small" style="margin:4px 0 0">1 serving = ${fmtG(f.servingG)} g${f.servingLabel?' ('+esc(f.servingLabel)+')':''}</p>`:''}
+   ${f.unitOnly?`<span class="muted">servings${f.servingLabel&&f.servingLabel!=='1 serving'?' ('+esc(f.servingLabel)+')':''}</span>`:f.servingG?`<div class="seg"><button class="${sheet.unit==='g'?'on':''}" data-a="funit" data-v="g">grams</button><button class="${sheet.unit==='serv'?'on':''}" data-a="funit" data-v="serv">servings</button></div>`:'<span class="muted">grams</span>'}</div>
+  ${f.servingG&&!f.unitOnly&&sheet.unit==='serv'?`<p class="muted small" style="margin:4px 0 0">1 serving = ${fmtG(f.servingG)} g${f.servingLabel?' ('+esc(f.servingLabel)+')':''}</p>`:''}
   <div class="apreview" id="apreview">${previewHTML(m)}</div>
   <h3>Meal</h3><div class="variants mealchips">${mealChips}</div>
   ${f.src==='off'&&!store.myFoods.some(x=>x.id===f.id)?`<label class="check" style="border:0"><input type="checkbox" data-sf="savemine" ${sheet.savemine?'checked':''}><span>Save to My foods (works offline)</span></label>`:''}
@@ -660,7 +661,7 @@ function renderAmount(){
   ${sheet.editId?'<button class="ghost" style="width:100%;margin-top:10px" data-a="fdelete">Remove from log</button>':''}</div>`;
 }
 function previewHTML(m){return `<div><b>${Math.round(m.kcal)}</b><small>kcal</small></div><div><b>${r1(m.p)}</b><small>protein</small></div><div><b>${r1(m.c)}</b><small>carbs</small></div><div><b>${r1(m.f)}</b><small>fat</small></div>`}
-function selectFood(f){sheet.sel=f;sheet.unit=f.servingG?'serv':'g';sheet.g=f.servingG?'1':'100';sheet.savemine=false;stopScan();renderSheet()}
+function selectFood(f){sheet.sel=f;sheet.unit=f.servingG||f.unitOnly?'serv':'g';sheet.g=f.servingG?'1':'100';sheet.savemine=false;stopScan();renderSheet()}
 
 /* Barcode scanning */
 let scanner=null;
@@ -705,7 +706,7 @@ function renderFood(){
  h+=`</div>`;
  MEALS.forEach(([k,label])=>{const es=(day.entries||[]).filter(e=>e.meal===k);const mt={kcal:0,p:0};es.forEach(e=>{const m=entryMacros(e);mt.kcal+=m.kcal;mt.p+=m.p});
   h+=`<div class="card fmeal"><div class="fmh"><h2>${label}</h2><span class="count">${es.length?Math.round(mt.kcal)+' kcal, '+r1(mt.p)+' g P':''}</span></div>`;
-  es.forEach(e=>{const m=entryMacros(e);h+=`<button class="frow entry" data-a="fedit" data-id="${e.id}"><span class="fn">${esc(e.name||'Quick add')}<small>${e.quick?'quick add':fmtG(e.g)+' g'}${e.brand?', '+esc(e.brand):''}</small></span><span class="fm">${Math.round(m.kcal)} kcal<small>P ${r1(m.p)} C ${r1(m.c)} F ${r1(m.f)}</small></span></button>`});
+  es.forEach(e=>{const m=entryMacros(e);h+=`<button class="frow entry" data-a="fedit" data-id="${e.id}"><span class="fn">${esc(e.name||'Quick add')}<small>${e.quick?'quick add':e.unitOnly?r1(e.g/100)+(r1(e.g/100)===1?' serving':' servings'):fmtG(e.g)+' g'}${e.brand?', '+esc(e.brand):''}</small></span><span class="fm">${Math.round(m.kcal)} kcal<small>P ${r1(m.p)} C ${r1(m.c)} F ${r1(m.f)}</small></span></button>`});
   h+=`<div class="fmactions"><button class="addf" data-a="fadd" data-meal="${k}">+ Add food</button>${es.length>1?`<button class="more" data-a="fsavemeal" data-meal="${k}">Save as meal</button>`:''}</div></div>`});
  h+=`<details class="card"><summary><h2>Targets</h2><span class="chev">›</span></summary>
   <p class="small muted" style="margin:0 0 8px">Protein comes from your plan (1.6–2.0 g per kg). Your plan also recommends eating around weight-stable or a small surplus, not an aggressive deficit, while you build muscle. Set the rest to suit you and leave any blank to just track it.</p>
@@ -730,7 +731,7 @@ function addEntryFromSheet(){
  const f=sheet.sel,g=amountGrams();if(!(g>0)){toast('Enter an amount');return}
  const iso=view.fdate;const day=store.food[iso]||(store.food[iso]={entries:[]});
  if(sheet.editId){const e=day.entries.find(x=>x.id===sheet.editId);if(e){e.g=r1(g);e.meal=sheet.meal}}
- else{day.entries.push({id:newId(),name:f.name,brand:f.brand||'',g:r1(g),per100:f.per100,servingG:f.servingG||null,servingLabel:f.servingLabel||'',src:f.src,code:f.code||'',meal:sheet.meal});pushRecent(f)}
+ else{day.entries.push({id:newId(),name:f.name,brand:f.brand||'',g:r1(g),per100:f.per100,servingG:f.servingG||null,servingLabel:f.servingLabel||'',unitOnly:!!f.unitOnly,src:f.src,code:f.code||'',meal:sheet.meal});pushRecent(f)}
  if(sheet.savemine&&!store.myFoods.some(x=>x.id===f.id))store.myFoods.unshift(JSON.parse(JSON.stringify(f)));
  saveFood();const wasEdit=sheet.editId;closeSheet();render();toast(wasEdit?'Updated':'Added')}
 async function handleFoodAction(a,b){
@@ -742,7 +743,7 @@ async function handleFoodAction(a,b){
  else if(a==='fadd'){openSheet(b.dataset.meal)}
  else if(a==='fedit'){const e=(foodDay(iso).entries||[]).find(x=>x.id===b.dataset.id);if(!e)return;
   if(e.quick){if(confirm('Remove "'+(e.name||'Quick add')+'" from the log?')){foodDay(iso).entries=foodDay(iso).entries.filter(x=>x.id!==e.id);saveFood();render()}return}
-  openSheet(e.meal,{editId:e.id,sel:{name:e.name,brand:e.brand,per100:e.per100,servingG:e.servingG,servingLabel:e.servingLabel,src:e.src,code:e.code},unit:'g',g:String(e.g)})}
+  openSheet(e.meal,{editId:e.id,sel:{name:e.name,brand:e.brand,per100:e.per100,servingG:e.servingG,servingLabel:e.servingLabel,unitOnly:e.unitOnly,src:e.src,code:e.code},unit:e.unitOnly?'serv':'g',g:String(e.unitOnly?r1(e.g/100):e.g)})}
  else if(a==='sheetclose'){closeSheet()}
  else if(a==='fback'){sheet.sel=null;renderSheet()}
  else if(a==='stab'){stopScan();sheet.tab=b.dataset.v;renderSheet()}
@@ -762,10 +763,16 @@ async function handleFoodAction(a,b){
   const day=store.food[iso]||(store.food[iso]={entries:[]});day.entries.push({id:newId(),quick:true,name:q.name||'Quick add',kcal:v('kcal'),p:v('p'),c:v('c'),f:v('f'),fib:v('fib'),meal:sheet.meal});saveFood();closeSheet();render();toast('Added')}
  else if(a==='fbasis'){sheet.create.basis=b.dataset.v;sheet.createOpen=true;renderSheet()}
  else if(a==='fcreatetoggle'){sheet.createOpen=!sheet.createOpen}
- else if(a==='fcreate'){const c=sheet.create;if(!c.name){toast('Give the food a name');return}
-  const sg=num(c.sg);const k=c.basis==='serv'?(sg>0?100/sg:null):1;if(c.basis==='serv'&&!k){toast('Enter the serving size in grams');return}
-  const v=x=>(num(c[x])||0)*k;const f={id:'my'+newId(),src:'custom',name:c.name,brand:c.brand||'',per100:{kcal:v('kcal'),p:v('p'),c:v('c'),f:v('f'),fib:v('fib')},servingG:c.basis==='serv'?sg:null,servingLabel:c.basis==='serv'?(c.sl||''):''};
-  store.myFoods.unshift(f);saveFood();sheet.create={basis:'100'};sheet.createOpen=false;selectFood(f);toast('Saved to My foods')}
+ else if(a==='fcreate'){const c=sheet.create;sheet.createOpen=true;
+  const err=t=>{sheet.createErr=t;renderSheet();const e=document.getElementById('createerr');if(e)e.scrollIntoView({block:'center'})};
+  if(!(c.name||'').trim())return err('Give the food a name.');
+  const vals=['kcal','p','c','f','fib'].map(x=>num(c[x]));if(vals.every(v=>v==null))return err('Enter at least the calories or protein.');
+  const sg=num(c.sg);let f;
+  if(c.basis==='serv'&&!(sg>0)){ // per serving, weight unknown: log it by servings only
+   const v=x=>num(c[x])||0;f={id:'my'+newId(),src:'custom',unitOnly:true,name:c.name.trim(),brand:(c.brand||'').trim(),per100:{kcal:v('kcal'),p:v('p'),c:v('c'),f:v('f'),fib:v('fib')},servingG:100,servingLabel:(c.sl||'').trim()||'1 serving'};
+  }else{const k=c.basis==='serv'?100/sg:1;const v=x=>(num(c[x])||0)*k;
+   f={id:'my'+newId(),src:'custom',name:c.name.trim(),brand:(c.brand||'').trim(),per100:{kcal:v('kcal'),p:v('p'),c:v('c'),f:v('f'),fib:v('fib')},servingG:c.basis==='serv'?sg:null,servingLabel:c.basis==='serv'?(c.sl||'').trim():''}}
+  store.myFoods.unshift(f);saveFood();sheet.create={basis:'100'};sheet.createErr='';sheet.createOpen=false;selectFood(f);toast('Saved to My foods')}
  else if(a==='fdelmine'){const f=store.myFoods[+b.dataset.i];if(f&&confirm('Delete "'+f.name+'" from My foods?')){store.myFoods.splice(+b.dataset.i,1);saveFood();renderSheet()}}
  else if(a==='fsavemeal'){const es=(foodDay(iso).entries||[]).filter(e=>e.meal===b.dataset.meal);const name=prompt('Name this meal','My '+b.dataset.meal);if(!name)return;
   store.meals.unshift({name,items:JSON.parse(JSON.stringify(es)).map(e=>{delete e.id;return e})});saveFood();toast('Meal saved')}
@@ -775,7 +782,7 @@ async function handleFoodAction(a,b){
  return true;
 }
 document.addEventListener('input',ev=>{const t=ev.target;
- if(t.dataset.sf&&sheet.open){const v=t.type==='checkbox'?t.checked:t.value;setPath(sheet,t.dataset.sf,v);
+ if(t.dataset.sf&&sheet.open){const v=t.type==='checkbox'?t.checked:t.value;setPath(sheet,t.dataset.sf,v);if(t.dataset.sf.startsWith('create.')&&sheet.createErr){sheet.createErr='';const e=document.getElementById('createerr');if(e)e.remove()}
   if(t.dataset.sf==='g'){const p=document.getElementById('apreview');if(p)p.innerHTML=previewHTML(entryMacros({g:amountGrams(),per100:sheet.sel.per100}))}
   if(t.dataset.sf==='q'){const loc=document.querySelector('.sbody');if(!sheet.q||sheet.q.length<3||!loc)return;clearTimeout(t._t);t._t=setTimeout(()=>{if(document.activeElement===t){const pos=t.selectionStart;renderSheet();const n=document.getElementById('sq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}}},350)}}
  if(t.dataset.tg){store.settings.targets[t.dataset.tg]=t.value;saveFood()}});
@@ -1176,7 +1183,7 @@ async function saveFile(name,data,type){
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),10000);
 }
 function exportFoodCSV(){const rows=[['Date','Meal','Food','Brand','Grams','kcal','Protein g','Carbs g','Fat g','Fibre g']];
- Object.keys(store.food).sort().forEach(iso=>{(store.food[iso].entries||[]).forEach(e=>{const m=entryMacros(e);rows.push([iso,e.meal,e.name||'Quick add',e.brand||'',e.quick?'':e.g,Math.round(m.kcal),r1(m.p),r1(m.c),r1(m.f),r1(m.fib)])})});
+ Object.keys(store.food).sort().forEach(iso=>{(store.food[iso].entries||[]).forEach(e=>{const m=entryMacros(e);rows.push([iso,e.meal,e.name||'Quick add',e.brand||'',e.quick?'':e.unitOnly?r1(e.g/100)+' serving(s)':e.g,Math.round(m.kcal),r1(m.p),r1(m.c),r1(m.f),r1(m.fib)])})});
  saveFile('glute-tracker-food.csv','\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\n'),'text/csv')}
 function csvCell(v){v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
 function exportCSV(){
