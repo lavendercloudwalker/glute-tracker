@@ -379,6 +379,12 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .shutter:active{transform:scale(.94)}
 .gclib{display:block;text-align:center;color:var(--pink);font-size:14px;text-decoration:underline;padding:0 0 10px;position:relative}
 .gclib input{position:absolute;inset:0;opacity:0}
+
+/* Gap suggestions */
+.gapcard{border-color:var(--mint)!important;box-shadow:0 0 16px rgba(61,255,176,.25),inset 0 0 16px rgba(61,255,176,.06)!important}
+.gapcard h2{color:var(--mint);text-shadow:0 0 8px rgba(61,255,176,.7)}
+.gaprow .fm{color:var(--mint)}
+.owntag{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#12052B;background:var(--cyan);border-radius:6px;padding:1px 5px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -729,7 +735,7 @@ function renderAmount(){
   <p class="muted small" style="margin:4px 0 0">${f.unitOnly?'Per serving':'Per 100 g'}: ${macroLine(f.per100)}${f.src==='builtin'?' (typical values)':''}</p>
   <div class="arow"><input id="amtin" inputmode="decimal" data-sf="g" value="${esc(sheet.g)}" aria-label="Amount">
    ${f.unitOnly?`<span class="muted">servings${f.servingLabel&&f.servingLabel!=='1 serving'?' ('+esc(f.servingLabel)+')':''}</span>`:f.servingG?`<div class="seg"><button class="${sheet.unit==='g'?'on':''}" data-a="funit" data-v="g">grams</button><button class="${sheet.unit==='serv'?'on':''}" data-a="funit" data-v="serv">servings</button></div>`:'<span class="muted">grams</span>'}</div>
-  ${f.servingG&&!f.unitOnly&&sheet.unit==='serv'?`<p class="muted small" style="margin:4px 0 0">1 serving = ${fmtG(f.servingG)} g${f.servingLabel?' ('+esc(f.servingLabel)+')':''}</p>`:''}
+  ${f.servingG&&!f.unitOnly&&sheet.unit==='serv'?`<p class="muted small" style="margin:4px 0 0">1 serving = ${fmtG(f.servingG)} g${f.servingLabel&&f.servingLabel.trim()!==fmtG(f.servingG)+' g'?' ('+esc(f.servingLabel)+')':''}</p>`:''}
   <div class="apreview" id="apreview">${previewHTML(m)}</div>
   <h3>Meal</h3><div class="variants mealchips">${mealChips}</div>
   ${f.src==='off'&&!store.myFoods.some(x=>x.id===f.id)?`<label class="check" style="border:0"><input type="checkbox" data-sf="savemine" ${sheet.savemine?'checked':''}><span>Save to My foods (works offline)</span></label>`:''}
@@ -780,6 +786,7 @@ function renderFood(){
  if(pmin&&t.p<pmin&&hasFood(iso))h+=`<p class="small" style="margin:8px 0 0"><b>${Math.ceil(pmin-t.p)} g</b> protein to go to reach ${pmin} g.</p>`;
  else if(pmin&&t.p>=pmin)h+=`<p class="small" style="margin:8px 0 0;color:var(--cyan)">Protein target reached.</p>`;
  h+=`</div>`;
+ h+=renderGap(iso);
  MEALS.forEach(([k,label])=>{const es=(day.entries||[]).filter(e=>e.meal===k);const mt={kcal:0,p:0};es.forEach(e=>{const m=entryMacros(e);mt.kcal+=m.kcal;mt.p+=m.p});
   h+=`<div class="card fmeal"><div class="fmh"><h2>${label}</h2><span class="count">${es.length?Math.round(mt.kcal)+' kcal, '+r1(mt.p)+' g P':''}</span></div>`;
   es.forEach(e=>{const m=entryMacros(e);h+=`<button class="frow entry" data-a="fedit" data-id="${e.id}"><span class="fn">${esc(e.name||'Quick add')}<small>${e.quick?'quick add':e.unitOnly?r1(e.g/100)+(r1(e.g/100)===1?' serving':' servings'):fmtG(e.g)+' g'}${e.brand?', '+esc(e.brand):''}</small></span><span class="fm">${Math.round(m.kcal)} kcal<small>P ${r1(m.p)} C ${r1(m.c)} F ${r1(m.f)}</small></span></button>`});
@@ -814,6 +821,8 @@ async function handleFoodAction(a,b){
  const iso=view.fdate;
  if(a==='fday'){view.fdate=addDays(iso,+b.dataset.v);render()}
  else if(a==='ftoday'){view.fdate=isoToday();render()}
+ else if(a==='fgap'){const x=gapList[+b.dataset.k];if(!x)return;const f=x.food,p=x.por;
+  openSheet(view.fdate===isoToday()?mealByTime():'snacks',{sel:f,unit:p.servings!=null?'serv':'g',g:String(p.servings!=null?p.servings:p.g),savemine:false})}
  else if(a==='fopen'){view.tab='food';view.fdate=b.dataset.v;render();window.scrollTo(0,0)}
  else if(a==='fpickday'){view.fdate=b.dataset.v;render()}
  else if(a==='fadd'){openSheet(b.dataset.meal)}
@@ -984,6 +993,41 @@ function renderPRWall(){
   return `<div class="prrow"><span class="prn">${esc(b.name)}<small>${esc(v)}</small></span><span class="prw">Wk ${t.w}<small>${DAYNAMES[DAYS.indexOf(t.d)].slice(0,3)}</small></span></div>`}).join('');
  return h+`</div>`;
 }
+
+/* ================= GAP SUGGESTIONS ================= */
+// Ideas to close a protein (or calorie) gap, from foods you actually eat first, then common foods.
+function foodPool(){const map=new Map();const since=addDays(isoToday(),-21);const key=f=>(f.name+'|'+(f.brand||'')).toLowerCase();
+ const add=(f,score)=>{if(!f||!f.per100)return;const k=key(f);const cur=map.get(k);if(cur)cur.uses+=score;else map.set(k,{food:f,uses:score,own:score>0})};
+ Object.keys(store.food).forEach(iso=>{if(iso<since)return;(store.food[iso].entries||[]).forEach(e=>{if(e.quick||!e.per100)return;add({id:'log'+key(e),name:e.name,brand:e.brand,per100:e.per100,servingG:e.servingG,servingLabel:e.servingLabel,unitOnly:e.unitOnly,src:e.src,code:e.code},2)})});
+ store.myFoods.forEach(f=>add(f,1));store.recent.forEach(f=>add(f,1));BUILTIN.forEach(f=>add(f,0));
+ return [...map.values()]}
+function roundAmt(g){return g<60?Math.max(5,Math.round(g/5)*5):Math.round(g/10)*10}
+function portionFor(f,need,per){ // per: 'p' or 'kcal'; returns grams (or servings*100 for serving-only foods) and what it covers
+ const unit=f.per100[per];if(!(unit>0))return null;
+ if(f.unitOnly){let s=Math.ceil(need/unit*2)/2;s=Math.min(Math.max(s,.5),2);return{g:s*100,servings:s,covers:s*unit}}
+ if(f.servingG){let s=Math.ceil(need/(unit*f.servingG/100)*2)/2;s=Math.min(Math.max(s,.5),2);const g=s*f.servingG;if(g*f.per100.kcal/100<=500)return{g,servings:s,covers:g*unit/100}}
+ let g=roundAmt(need/unit*100);const maxG=Math.min(400,Math.round(450/Math.max(f.per100.kcal,1)*100));g=Math.max(20,Math.min(g,maxG));return{g,covers:g*unit/100}}
+function gapIdeas(iso){
+ const t=dayTotals(iso),T=store.settings.targets,pmin=num(T.pmin),kt=num(T.kcal);
+ if(!hasFood(iso))return null;
+ if(pmin&&t.p<pmin-2){const need=pmin-t.p;
+  const c=foodPool().filter(x=>x.food.per100.p>=5&&x.food.per100.p/Math.max(x.food.per100.kcal,1)*100>=7&&x.food.per100.p/Math.max(x.food.per100.kcal,1)*100<60)
+   .map(x=>{const d=x.food.per100.p/x.food.per100.kcal*100;return Object.assign(x,{score:d+(x.own?6+x.uses:0)})}).sort((a,b)=>b.score-a.score);
+  const own=c.filter(x=>x.own).slice(0,3),rest=c.filter(x=>!x.own);const pick=[...own,...rest].slice(0,4);
+  return{kind:'p',need,items:pick.map(x=>({food:x.food,own:x.own,por:portionFor(x.food,Math.min(need,40),'p')})).filter(x=>x.por)}}
+ if(kt&&pmin&&t.p>=pmin&&t.kcal<kt-250){const need=kt-t.kcal;
+  const c=foodPool().filter(x=>x.food.per100.kcal>=150&&(x.food.per100.p>=3||x.food.per100.c>=10)).map(x=>Object.assign(x,{score:(x.own?300+x.uses*20:0)+x.food.per100.kcal/4+x.food.per100.p*2})).sort((a,b)=>b.score-a.score);
+  const pick=c.slice(0,4);return{kind:'kcal',need,items:pick.map(x=>({food:x.food,own:x.own,por:portionFor(x.food,Math.min(need,350),'kcal')})).filter(x=>x.por)}}
+ return null}
+let gapList=[];
+function renderGap(iso){const g=gapIdeas(iso);if(!g||!g.items.length)return '';gapList=g.items;
+ const title=g.kind==='p'?(g.need>40?`<b>${Math.ceil(g.need)} g</b> protein to go. That's a lot for one sitting, so spread it over your next meals or snacks. Good options:`:`<b>${Math.ceil(g.need)} g</b> protein to go. Any one of these closes it:`):`Protein's done, but you're <b>${Math.round(g.need)} kcal</b> under your calorie target. Easy ways to top up:`;
+ return `<div class="card gapcard"><h2>${g.kind==='p'?'Close the gap':'Room for more fuel'}</h2><p class="small" style="margin:0 0 4px">${title}</p>
+  ${g.items.map((x,i)=>{const f=x.food,p=x.por,m=entryMacros({g:p.g,per100:f.per100});const amt=p.servings!=null?(p.servings+(p.servings===1?' serving':' servings')+(!f.unitOnly?' ('+fmtG(p.g)+' g)':f.servingLabel&&f.servingLabel!=='1 serving'?' ('+f.servingLabel+(p.servings===1?'':' each')+')':'')):fmtG(p.g)+' g';
+   const full=g.kind==='p'?(g.need>40||m.p>=g.need-1):true;
+   return `<button class="frow gaprow" data-a="fgap" data-k="${i}"><span class="fn">${esc(f.name)}${x.own?' <i class="owntag">your food</i>':''}<small>${esc(amt)}${!full?', covers '+Math.round(m.p)+' of '+Math.ceil(g.need)+' g':''}</small></span><span class="fm">${g.kind==='p'?'+'+r1(m.p)+' g P':'+'+Math.round(m.kcal)+' kcal'}<small>${g.kind==='p'?Math.round(m.kcal)+' kcal':'P '+r1(m.p)+' g'}</small></span></button>`}).join('')}
+  <p class="small muted" style="margin:8px 0 0">Tap one to adjust the amount and add it.</p></div>`}
+function mealByTime(){const hr=new Date().getHours();return hr<11?'breakfast':hr<15?'lunch':hr>=17&&hr<21?'dinner':'snacks'}
 
 /* ================= RENDER: DAY ================= */
 function renderDay(){
