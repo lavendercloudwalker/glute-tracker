@@ -385,6 +385,16 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .gapcard h2{color:var(--mint);text-shadow:0 0 8px rgba(61,255,176,.7)}
 .gaprow .fm{color:var(--mint)}
 .owntag{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#12052B;background:var(--cyan);border-radius:6px;padding:1px 5px;vertical-align:middle}
+
+/* Insights */
+.ins{display:flex;gap:10px;padding:10px 0;border-top:1px solid rgba(157,107,255,.22)}
+.ins:first-of-type{border-top:0}
+.ins b{display:block;color:#fff}
+.ins p{margin:3px 0 0;font-size:14px;color:var(--muted)}
+.insdot{flex:none;width:12px;height:12px;border-radius:50%;margin-top:5px}
+.ins.good .insdot{background:var(--mint);box-shadow:0 0 8px var(--mint)}
+.ins.watch .insdot{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+.ins.health .insdot{background:var(--red);box-shadow:0 0 8px var(--red)}
 </style>
 </head>
 <body>
@@ -1029,6 +1039,71 @@ function renderGap(iso){const g=gapIdeas(iso);if(!g||!g.items.length)return '';g
   <p class="small muted" style="margin:8px 0 0">Tap one to adjust the amount and add it.</p></div>`}
 function mealByTime(){const hr=new Date().getHours();return hr<11?'breakfast':hr<15?'lunch':hr>=17&&hr<21?'dinner':'snacks'}
 
+/* ================= INSIGHTS ================= */
+// Simple pattern checks on your own logs, with advice taken from your plan.
+function isoToWD(iso){const s=parseDate(store.settings.startDate),d=dateFromIso(iso);const diff=Math.round((d-s)/864e5);if(diff<0||diff>=112)return null;return{w:Math.floor(diff/7)+1,dk:DAYS[diff%7]}}
+function recentDays(n){const out=[];const t=isoToday();for(let i=n-1;i>=0;i--){const iso=addDays(t,-i);const wd=isoToWD(iso);out.push({iso,wd,o:wd?getDay(wd.w,wd.dk):{}})}return out}
+const MAIN_LIFTS=[['mon','ht'],['mon','sq'],['thu','bss'],['thu','bx'],['fri','gd']];
+function liftStalls(){const out=[];const tIso=isoToday();
+ MAIN_LIFTS.forEach(([dk,id])=>{const ex=findEx(dk,id);const sess={};
+  for(let w=1;w<=16;w++){const o=getDay(w,dk),e=o.ex&&o.ex[id];if(!e)continue;const v=e.variant||(ex.variants?ex.variants[0]:'');
+   const ls=loggedSets(e).filter(s=>num(s.kg)!=null&&num(s.reps));if(!ls.length)continue;
+   const e1=Math.max(...ls.map(s=>num(s.kg)*(1+num(s.reps)/30)));const key=prName(ex,v);(sess[key]=sess[key]||[]).push({w,e1,iso:isoOf(dateOf(w,DAYS.indexOf(dk)))})}
+  Object.entries(sess).forEach(([key,list])=>{if(list.length<4)return;const last=list.slice(-3),before=list.slice(0,-3);
+   const bestBefore=Math.max(...before.map(x=>x.e1)),bestLast=Math.max(...last.map(x=>x.e1));
+   const span=(dateFromIso(last[2].iso)-dateFromIso(last[0].iso))/864e5;const fresh=(dateFromIso(tIso)-dateFromIso(last[2].iso))/864e5<=10;
+   if(bestLast<=bestBefore*1.005&&span>=13&&fresh&&!last.some(x=>x.w===9))out.push(key)})});
+ return out}
+function computeInsights(){
+ const I=[];const T=store.settings.targets,pmin=num(T.pmin),kt=num(T.kcal);
+ const d14=recentDays(14),d7=d14.slice(7);
+ const chk=k=>d14.map(x=>getPath(x.o,'checkin.'+k));
+ // health first
+ const bleedDays=chk('bleed').filter(v=>v==='yes').length;
+ if(bleedDays)I.push({tone:'health',title:`Bleeding logged on ${bleedDays} day${bleedDays>1?'s':''} in the last 2 weeks`,tip:'Your plan treats irregular, heavy or changed bleeding as something to get checked by your GP, and to hold off pushing load increases until then. Get urgent help for heavy bleeding, large clots, dizziness, fever or pelvic pain.'});
+ const pelvic=chk('pelvic').filter(v=>v==='yes').length;
+ if(pelvic)I.push({tone:'health',title:`Pelvic symptoms logged on ${pelvic} day${pelvic>1?'s':''} recently`,tip:'Your plan says: reduce the load, exhale through the hard part of each rep, and consider a pelvic-health physio if it continues.'});
+ const backs=chk('back').map(num).filter(v=>v!=null);const highBack=backs.filter(v=>v>=5).length;
+ if(highBack>=2)I.push({tone:'health',title:`Back pain at 5 or more on ${highBack} days`,tip:'Switch to the supported options (machine or Smith, chest-supported), keep the spine neutral and stay well short of failure. Pain that sharpens, spreads down the leg or is worse the next day is one for a physio or GP.'});
+ // recovery
+ const flags=chk('light').filter(v=>v==='amber'||v==='red').length;
+ if(flags>=3)I.push({tone:'watch',title:`${flags} Amber or Red days in 2 weeks`,tip:'Recovery is struggling. Keep the main lifts, trim accessories and use about 3 reps in reserve. If it keeps up, a lighter week now beats three bad ones.'});
+ const sleeps=d7.map(x=>num(getPath(x.o,'checkin.sleep'))).filter(v=>v!=null);
+ if(sleeps.length>=3){const a=sleeps.reduce((s,v)=>s+v,0)/sleeps.length;if(a<6)I.push({tone:'watch',title:`Sleep averaging ${a.toFixed(1)} h this week`,tip:'Short sleep blunts recovery, so autoregulate: same main lifts, fewer extra sets, and a nap or earlier protein if you can.'})}
+ // lifts
+ const stalls=liftStalls();stalls.slice(0,2).forEach(k=>I.push({tone:'watch',title:`${k} hasn't moved in 3 sessions`,tip:'Keep the weight and aim for one more rep per set, check your form video, and look at your sleep and food for that week. If it is still stuck after the next deload, bring your logs to Claude.'}));
+ const pr=prCompute();const tp=todayPos();const recentPRs=pr.events.filter(e=>e.w>=tp.w-1&&e.w<=tp.w).length;
+ if(recentPRs>=3)I.push({tone:'good',title:`${recentPRs} PRs in the last 2 weeks`,tip:'Strength is climbing, the earliest sign the plan is working. Keep doing exactly this.'});
+ // food
+ const logged=d7.filter(x=>hasFood(x.iso));
+ if(pmin&&logged.length>=4){const hit=logged.filter(x=>dayTotals(x.iso).p>=pmin).length;
+  if(hit/logged.length<.5)I.push({tone:'watch',title:`Protein target hit on ${hit} of ${logged.length} logged days`,tip:'Aim for 25–35 g at each meal rather than catching up at night. The Close the gap card on the Food tab suggests portions from foods you already eat.'});
+  else if(hit/logged.length>=.8)I.push({tone:'good',title:`Protein on target ${hit} of ${logged.length} logged days`,tip:'Great consistency. This is the nutrition habit that matters most for growth.'})}
+ if(kt&&logged.length>=4){const under=logged.filter(x=>dayTotals(x.iso).kcal<kt-300).length;
+  if(under>=4)I.push({tone:'watch',title:`Calories more than 300 under target on ${under} of ${logged.length} days`,tip:'Your plan is weight-stable or a small surplus while building muscle. Add energy around foods you already eat, especially on training days.'+(stalls.length?' This may also be why a lift has stalled.':'')})}
+ // bodyweight trend
+ if(tp.w>=3&&!tp.out){const ws=[tp.w-2,tp.w-1,tp.w].map(weekWeightAvg);if(ws[0]!=null&&ws[2]!=null&&ws[2]-ws[0]<=-1)I.push({tone:'watch',title:`Weight down ${(ws[0]-ws[2]).toFixed(1)} kg in 2 weeks`,tip:'Losing weight this fast makes building muscle harder. Nudge food up a little, especially carbs around training.'})}
+ // measurements after 8 weeks
+ const base=num(getPath(getDay(1,'mon'),'meas.glute'));
+ if(base!=null){const cps=[['8-sun',8],['12-sun',12],['16-sun',16]].map(([k,wk])=>{const [w,d]=k.split('-');return{wk,v:num(getPath(getDay(+w,d),'meas.glute'))}}).filter(x=>x.v!=null);
+  const lastCp=cps[cps.length-1];if(lastCp){const ch=lastCp.v-base;
+   if(ch>=0.5)I.push({tone:'good',title:`Glutes up ${ch.toFixed(1)} cm since baseline`,tip:'Real growth. Compare your ghost-matched photos on the Progress tab too.'});
+   else I.push({tone:'watch',title:`Glutes unchanged after ${lastCp.wk} weeks`,tip:'Check the basics in order: are your main lifts going up, are you eating enough, are you sleeping, and are you measuring the same way each time? This is a good moment to bring your logs to Claude for a proper look.'})}}
+ // consistency
+ const missed=d14.filter(x=>x.wd&&TRAIN.includes(x.wd.dk)&&x.iso<isoToday()&&!x.o.complete&&getPath(x.o,'checkin.light')!=='red').length;
+ if(missed>=2)I.push({tone:'watch',title:`${missed} sessions missed in 2 weeks`,tip:'No guilt, just adjust. A shorter session still counts: do the first two main lifts and leave the rest.'});
+ const order={health:0,watch:1,good:2};return I.sort((a,b)=>order[a.tone]-order[b.tone]).slice(0,6);
+}
+function renderInsights(){
+ const I=computeInsights();const tp=todayPos();
+ let h=`<div class="card insights"><h2>Insights</h2>`;
+ if(!I.length){h+=`<p class="small" style="margin:0">${tp.out==='before'||(Object.keys(store.days).length<4)?'Insights appear once you have a couple of weeks of logs. They spot patterns like stalled lifts, low protein days or short sleep, and tell you what your plan suggests.':'Nothing needs your attention right now. Keep going.'}</p>`}
+ else h+=I.map(x=>`<div class="ins ${x.tone}"><span class="insdot"></span><div><b>${esc(x.title)}</b><p>${esc(x.tip)}</p></div></div>`).join('');
+ h+=`<p class="small muted" style="margin:12px 0 8px">Want a proper look? Back up or export your CSVs, then upload them in a chat in your Glute Growth Plan project and ask Claude.</p>
+  <div class="seg"><button data-a="backup">Backup</button><button data-a="csv">Sets CSV</button><button data-a="foodcsv">Food CSV</button></div></div>`;
+ return h;
+}
+
 /* ================= RENDER: DAY ================= */
 function renderDay(){
  PRC=prCompute();
@@ -1252,7 +1327,7 @@ function spark(points){
  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>${points.map(p=>`<circle cx="${px(p[0])}" cy="${py(p[1])}" r="3.5" fill="var(--accent)"/>`).join('')}</svg>`;
 }
 function renderProgress(){
- let h=renderConsistency()+renderPRWall();
+ let h=renderInsights()+renderConsistency()+renderPRWall();
  // Measurements
  const rows=CP_ORDER.map(k=>{const [w,d]=k.split('-');const m=getDay(+w,d).meas||{};return{k,label:CHECKPOINTS[k],w:+w,d,m}});
  const b=rows[0].m;const dl=(a,bb)=>{a=num(a);bb=num(bb);return a!=null&&bb!=null?(a-bb>=0?'+':'')+Math.round((a-bb)*10)/10:''};
