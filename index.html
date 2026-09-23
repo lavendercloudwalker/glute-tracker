@@ -303,6 +303,14 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .mealchips{margin:0;padding:0}
 .create{margin-top:14px}
 .create summary{list-style:none}
+
+/* Form videos */
+.vrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.vbtn{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;border:1.5px solid var(--cyan);border-radius:14px;padding:6px 12px 6px 6px;background:rgba(45,226,230,.08);box-shadow:0 0 10px rgba(45,226,230,.25);min-height:46px;min-width:0}
+.vbtn .play{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--sunset);color:#1A0733;font-size:13px;box-shadow:0 0 10px rgba(255,110,199,.6)}
+.vbtn span{font-weight:700;font-size:14px;line-height:1.15;min-width:0}
+.vbtn small{display:block;font-weight:400;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vrow .more{flex:none}
 </style>
 </head>
 <body>
@@ -791,6 +799,39 @@ document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='sq
  if(ev.key==='Enter'&&ev.target.dataset&&ev.target.dataset.sf==='code'){ev.preventDefault();lookupCode(sheet.code)}});
 function protAvg(w){const v=DAYS.map((dk,i)=>{const iso=isoOf(dateOf(w,i));if(hasFood(iso))return dayTotals(iso).p;return num(getPath(getDay(w,dk),'daily.protein'))}).filter(x=>x!=null);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):'NR'}
 
+/* ================= FORM VIDEOS ================= */
+// YouTube search phrases for every exercise, alternative and skill level
+const VQ={
+ 'Smith':'Smith machine hip thrust form','Barbell':'barbell hip thrust form','Machine glute drive':'glute drive machine form','Weighted bridge':'weighted glute bridge form',
+ 'Hack squat':'hack squat form for glutes','Leg press':'leg press form for glutes','Smith squat':'Smith machine squat form','Belt squat':'belt squat form',
+ 'Seated machine':'seated hip abduction machine form','Cable':'cable hip abduction form','Side-lying':'side lying hip abduction form',
+ 'TRX':'TRX row form','Rings':'ring row form','Bar':'inverted row form','Chest-supported cable row':'chest supported cable row form',
+ 'Bulgarian split squat':'Bulgarian split squat glute focus form','Reverse lunge':'reverse lunge glute focus form','Smith split squat':'Smith machine split squat form','High step-up':'high step up glutes form',
+ '45° back extension':'45 degree back extension for glutes form','Cable pull-through':'cable pull through form','B-stance DB RDL':'B stance dumbbell RDL form',
+ 'Seated':'seated leg curl form','Lying':'lying leg curl form','Pallof press':'Pallof press form','Bird dog':'bird dog exercise form',
+ 'Weighted glute bridge':'weighted glute bridge form','Smith hip thrust (moderate)':'Smith machine hip thrust form',
+ 'Light Smith reverse lunge':'Smith machine reverse lunge form','Supported split squat':'supported split squat form',
+ 'Assisted pull-up':'assisted pull up form','Lat pulldown':'lat pulldown form','Side plank':'side plank form','Suitcase carry':'suitcase carry form',
+ // skill ladder levels
+ 'Box pike hold':'box pike hold handstand progression','Feet-elevated pike hold':'feet elevated pike hold handstand','Wall walk':'wall walk handstand progression',
+ 'Chest-to-wall handstand':'chest to wall handstand form','Toe / heel pulls from wall':'handstand toe pulls heel pulls wall','Freestanding kick-up attempts':'how to kick up to freestanding handstand',
+ 'Active hang + scapular pull':'active hang scapular pull up','Less-assisted pull-up':'assisted pull up progression','Top hold + controlled negative':'pull up negatives and top hold',
+ 'Unassisted singles':'how to do your first pull up','Multiple unassisted reps':'pull up form for women',
+ 'High incline push-up':'incline push up form','Lower incline push-up':'incline push up progression','Low incline / bench push-up':'bench push up form',
+ 'Floor push-up':'push up form for women','Harder floor variation (weighted / feet elevated)':'feet elevated push up form'
+};
+const VQ_EX={lc:'seated leg curl form',dbug:'dead bug exercise form',pike:'pike push up form',splank:'side plank form',pal:'Pallof press form',carry:'suitcase carry form',calf:'standing calf raise form',kb:'cable glute kickback form'};
+function videoFor(ex,w,dk,e){
+ let label,q;
+ if(ex.variants&&!(ex.ladder&&(e.variant||ex.variants[0])!=='Lat pulldown'&&ex.id==='pull2')){const v=e.variant||ex.variants[0];label=ex.id==='ht'&&(v==='Smith'||v==='Barbell')?v+' hip thrust':ex.id==='abA'||ex.id==='abC'?v+' abduction':ex.id==='lc2'?v+' leg curl':v;q=VQ[v]}
+ if(!q&&ex.ladder){const L=LADDERS[ex.ladder],lv=currentLevel(ex.ladder,w,dk,ex.id);label=L.levels[lv-1][0];q=VQ[label]}
+ if(!q){label=ex.name;q=VQ_EX[ex.id]||(ex.name+' exercise form')}
+ const saved=(store.settings.videos||{})[q];
+ return{label,q,url:saved||('https://www.youtube.com/results?search_query='+encodeURIComponent(q)),saved:!!saved};
+}
+function videoRow(ex,w,dk,e){const v=videoFor(ex,w,dk,e);
+ return `<div class="vrow"><a class="vbtn" href="${esc(v.url)}" target="_blank" rel="noopener"><span class="play">▶</span><span>${v.saved?'Watch your video':'Watch form'}<small>${esc(v.label)}</small></span></a><button class="more" data-a="vsave" data-q="${esc(v.q)}" data-l="${esc(v.label)}">${v.saved?'Change video':'Save my video'}</button></div>`}
+
 /* ================= RENDER: DAY ================= */
 function renderDay(){
  const {w,d}=view,dk=DAYS[d],p=PLAN[dk],o=getDay(w,dk),dt=dateOf(w,d);
@@ -900,6 +941,7 @@ function renderEx(w,dk,o,ex,light){
  if(ex.ladder){const L=LADDERS[ex.ladder],lv=currentLevel(ex.ladder,w,dk,ex.id),cur=L.levels[lv-1];
   h+=`<div class="level fld"><label>${L.name} level</label><select data-lvl="${ex.id}">${L.levels.map((l,i)=>`<option value="${i+1}" ${i+1===lv?'selected':''}>Level ${i+1}: ${esc(l[0])}</option>`).join('')}</select>
   <div class="lvlnote">Target ${esc(cur[1])}. Move up when: ${esc(cur[2])}, for at least two sessions.</div></div>`}
+ h+=videoRow(ex,w,dk,e);
  if(r.skip){h+=`<p class="cue">${esc(ex.cue)}</p></section>`;return h}
  const prev=findPrev(ex.id,w,dk);const hint=hintFor(ex,w,prev);
  if(prev||hint){
@@ -1142,6 +1184,12 @@ document.addEventListener('click',ev=>{
  else if(a==='t30'){timer.end+=30000}
  else if(a==='tstop'){stopTimer()}
  else if(a==='angle'){view.angle=b.dataset.v;render()}
+ else if(a==='vsave'){const q=b.dataset.q;store.settings.videos=store.settings.videos||{};const cur=store.settings.videos[q]||'';
+  const v=prompt('Paste a video link for '+b.dataset.l+(cur?'. Leave it empty to go back to the YouTube search.':'. Tip: in YouTube tap Share, then Copy link.'),cur);
+  if(v===null)return;const t=v.trim();
+  if(!t){delete store.settings.videos[q];cacheLocal();render();toast('Back to YouTube search');return}
+  const m=t.match(/https?:\/\/\S+/);if(!m){toast('That does not look like a link');return}
+  store.settings.videos[q]=m[0];cacheLocal();render();toast('Video saved')}
  else if(a==='goto'){view.tab='day';view.w=+b.dataset.w;view.d=+b.dataset.d;render();window.scrollTo(0,0)}
  else if(a==='csv')exportCSV();
  else if(a==='foodcsv')exportFoodCSV();
