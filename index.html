@@ -395,6 +395,13 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .ins.good .insdot{background:var(--mint);box-shadow:0 0 8px var(--mint)}
 .ins.watch .insdot{background:var(--orange);box-shadow:0 0 8px var(--orange)}
 .ins.health .insdot{background:var(--red);box-shadow:0 0 8px var(--red)}
+
+/* Carb range */
+.mbar.carb .fill{background:var(--violet);box-shadow:0 0 8px var(--violet)}
+.mbar.carb.under .fill{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+.mbar.carb.inrange .fill{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.mbar.carb.over .fill{background:var(--red);box-shadow:0 0 8px var(--red)}
+.mbar.carb .track2{overflow:visible}
 </style>
 </head>
 <body>
@@ -649,7 +656,8 @@ const BUILTIN=[
  ['Olive oil',884,0,0,100,0,10,'1 tbsp'],['Cheddar',403,25,1.3,33,0,30,'30 g'],['Feta',264,14,4,21,0,30,'30 g'],
  ['Milk, semi-skimmed',46,3.5,4.7,1.5,0,250,'1 glass'],['Honey',304,0.3,82,0,0,15,'1 tbsp'],['Dark chocolate 70%',598,7.8,36,43,10.9,20,'2 squares']
 ].map((r,i)=>({id:'b'+i,src:'builtin',name:r[0],per100:{kcal:r[1],p:r[2],c:r[3],f:r[4],fib:r[5]},servingG:r[6],servingLabel:r[7]}));
-function initFoodStore(){store.food=store.food||{};store.myFoods=store.myFoods||[];store.meals=store.meals||[];store.recent=store.recent||[];store.settings.targets=Object.assign({pmin:100,pmax:125,kcal:'',c:'',f:'',fib:''},store.settings.targets||{})}
+function initFoodStore(){store.food=store.food||{};store.myFoods=store.myFoods||[];store.meals=store.meals||[];store.recent=store.recent||[];store.settings.targets=Object.assign({pmin:100,pmax:125,kcal:'',cmin:'',c:'',f:'',fib:''},store.settings.targets||{});
+ const T0=store.settings.targets;if(!T0.carbRange){if(!num(T0.cmin))T0.cmin='120';if(!num(T0.c))T0.c='140';T0.carbRange=true}}
 initFoodStore();
 function isoOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function isoToday(){return isoOf(new Date())}
@@ -786,15 +794,18 @@ function bar(label,val,unit,min,max,cls){
  if(!min&&!max)return `<div class="mbar"><div class="mtop"><span>${label}</span><span><b>${Math.round(val)}</b> ${unit}</span></div></div>`;
  const top=max||min,scale=top*1.25,fill=Math.min(100,val/scale*100);
  const band=max&&min?`<i class="band" style="left:${min/scale*100}%;width:${(max-min)/scale*100}%"></i>`:`<i class="mark" style="left:${min/scale*100}%"></i>`;
- const tgt=max&&min?`${min}–${max}`:`${min}`;
- return `<div class="mbar ${cls||''}"><div class="mtop"><span>${label}</span><span><b>${Math.round(val)}</b> / ${tgt} ${unit}</span></div><div class="track2">${band}<i class="fill" style="width:${fill}%"></i></div></div>`}
+ const tgt=max&&min?`${min}–${max}`:`${min}`;const st=max&&min?(val<min?' under':val>max?' over':' inrange'):'';
+ return `<div class="mbar ${cls||''}${st}"><div class="mtop"><span>${label}</span><span><b>${Math.round(val)}</b> / ${tgt} ${unit}</span></div><div class="track2">${band}<i class="fill" style="width:${fill}%"></i></div></div>`}
 function renderFood(){
  const iso=view.fdate,t=dayTotals(iso),T=store.settings.targets,day=foodDay(iso);
  const pmin=num(T.pmin),pmax=num(T.pmax);
  let h=`<div class="card ftotals"><div class="fbig"><div><span class="bn">${Math.round(t.kcal)}</span><span class="bl">kcal${num(T.kcal)?' of '+num(T.kcal):''}</span></div><div><span class="bn pk">${Math.round(t.p)}</span><span class="bl">g protein</span></div></div>
-  ${bar('Protein',t.p,'g',pmin,pmax,'prot')}${bar('Calories',t.kcal,'kcal',num(T.kcal),null)}${bar('Carbs',t.c,'g',num(T.c),null)}${bar('Fat',t.f,'g',num(T.f),null)}${bar('Fibre',t.fib,'g',num(T.fib),null)}`;
+  ${bar('Protein',t.p,'g',pmin,pmax,'prot')}${bar('Calories',t.kcal,'kcal',num(T.kcal),null)}${(()=>{const a=num(T.cmin),b=num(T.c);return a&&b?bar('Carbs',t.c,'g',a,b,'carb'):bar('Carbs',t.c,'g',b||a,null)})()}${bar('Fat',t.f,'g',num(T.f),null)}${bar('Fibre',t.fib,'g',num(T.fib),null)}`;
  if(pmin&&t.p<pmin&&hasFood(iso))h+=`<p class="small" style="margin:8px 0 0"><b>${Math.ceil(pmin-t.p)} g</b> protein to go to reach ${pmin} g.</p>`;
  else if(pmin&&t.p>=pmin)h+=`<p class="small" style="margin:8px 0 0;color:var(--cyan)">Protein target reached.</p>`;
+ {const cmn=num(T.cmin),cmx=num(T.c);if(hasFood(iso)&&cmn&&t.c<cmn)h+=`<p class="small" style="margin:4px 0 0"><b>${Math.ceil(cmn-t.c)} g</b> carbs to go to reach your ${cmn} g floor.</p>`;
+  else if(cmx&&cmn&&t.c>cmx)h+=`<p class="small" style="margin:4px 0 0;color:var(--orange)">Carbs are ${Math.round(t.c-cmx)} g over your ${cmx} g max.</p>`;
+  else if(cmn&&cmx&&t.c>=cmn)h+=`<p class="small" style="margin:4px 0 0;color:var(--cyan)">Carbs in your range.</p>`}
  h+=`</div>`;
  h+=renderGap(iso);
  MEALS.forEach(([k,label])=>{const es=(day.entries||[]).filter(e=>e.meal===k);const mt={kcal:0,p:0};es.forEach(e=>{const m=entryMacros(e);mt.kcal+=m.kcal;mt.p+=m.p});
@@ -802,9 +813,10 @@ function renderFood(){
   es.forEach(e=>{const m=entryMacros(e);h+=`<button class="frow entry" data-a="fedit" data-id="${e.id}"><span class="fn">${esc(e.name||'Quick add')}<small>${e.quick?'quick add':e.unitOnly?r1(e.g/100)+(r1(e.g/100)===1?' serving':' servings'):fmtG(e.g)+' g'}${e.brand?', '+esc(e.brand):''}</small></span><span class="fm">${Math.round(m.kcal)} kcal<small>P ${r1(m.p)} C ${r1(m.c)} F ${r1(m.f)}</small></span></button>`});
   h+=`<div class="fmactions"><button class="addf" data-a="fadd" data-meal="${k}">+ Add food</button>${es.length>1?`<button class="more" data-a="fsavemeal" data-meal="${k}">Save as meal</button>`:''}</div></div>`});
  h+=`<details class="card"><summary><h2>Targets</h2><span class="chev">›</span></summary>
-  <p class="small muted" style="margin:0 0 8px">Protein comes from your plan (1.6–2.0 g per kg). Your plan also recommends eating around weight-stable or a small surplus, not an aggressive deficit, while you build muscle. Set the rest to suit you and leave any blank to just track it.</p>
+  <p class="small muted" style="margin:0 0 8px">Protein comes from your plan (1.6–2.0 g per kg). Your plan also recommends eating around weight-stable or a small surplus, not an aggressive deficit, while you build muscle. Carbs have a floor as well as a max: while you're breastfeeding, with LADA, stay at or above the floor rather than going as low as possible. Leave any box blank to just track it.</p>
   <div class="grid2"><div class="fld"><label>Protein min (g)</label><input inputmode="numeric" data-tg="pmin" value="${esc(T.pmin)}"></div><div class="fld"><label>Protein max (g)</label><input inputmode="numeric" data-tg="pmax" value="${esc(T.pmax)}"></div>
-  <div class="fld"><label>Calories (kcal)</label><input inputmode="numeric" data-tg="kcal" value="${esc(T.kcal)}"></div><div class="fld"><label>Carbs (g)</label><input inputmode="numeric" data-tg="c" value="${esc(T.c)}"></div>
+  <div class="fld"><label>Carbs floor (g)</label><input inputmode="numeric" data-tg="cmin" value="${esc(T.cmin)}"></div><div class="fld"><label>Carbs max (g)</label><input inputmode="numeric" data-tg="c" value="${esc(T.c)}"></div>
+  <div class="fld"><label>Calories (kcal)</label><input inputmode="numeric" data-tg="kcal" value="${esc(T.kcal)}"></div>
   <div class="fld"><label>Fat (g)</label><input inputmode="numeric" data-tg="f" value="${esc(T.f)}"></div><div class="fld"><label>Fibre (g)</label><input inputmode="numeric" data-tg="fib" value="${esc(T.fib)}"></div></div></details>`;
  h+=`<p class="small muted" style="text-align:center">Packaged food data from Open Food Facts. Common foods use typical values.</p>`;
  return h;
@@ -1025,17 +1037,23 @@ function gapIdeas(iso){
    .map(x=>{const d=x.food.per100.p/x.food.per100.kcal*100;return Object.assign(x,{score:d+(x.own?6+x.uses:0)})}).sort((a,b)=>b.score-a.score);
   const own=c.filter(x=>x.own).slice(0,3),rest=c.filter(x=>!x.own);const pick=[...own,...rest].slice(0,4);
   return{kind:'p',need,items:pick.map(x=>({food:x.food,own:x.own,por:portionFor(x.food,Math.min(need,40),'p')})).filter(x=>x.por)}}
+ const cmn=num(T.cmin);
+ if(cmn&&(!pmin||t.p>=pmin-2)&&t.c<cmn-10){const need=cmn-t.c;const skip=/pasta|bread|potato|quinoa|bulgur|rice|honey|chocolate/i;
+  const c=foodPool().filter(x=>{const f=x.food.per100;return f.c>=5&&f.c*4/Math.max(f.kcal,1)>=.25&&!skip.test(x.food.name)}).map(x=>{const f=x.food.per100;return Object.assign(x,{score:(x.own?40+x.uses*3:0)+(f.fib||0)/Math.max(f.c,1)*20+f.p/Math.max(f.kcal,1)*150})}).sort((a,b)=>b.score-a.score);
+  const own=c.filter(x=>x.own).slice(0,3),rest=c.filter(x=>!x.own);const pick=[];let legumes=0;
+  for(const x of [...own,...rest]){const leg=/lentil|bean|chickpea/i.test(x.food.name);if(leg&&legumes>=2&&!x.own)continue;if(leg)legumes++;pick.push(x);if(pick.length===4)break}
+  return{kind:'c',need,items:pick.map(x=>({food:x.food,own:x.own,por:portionFor(x.food,Math.min(need,35),'c')})).filter(x=>x.por)}}
  if(kt&&pmin&&t.p>=pmin&&t.kcal<kt-250){const need=kt-t.kcal;
   const c=foodPool().filter(x=>x.food.per100.kcal>=150&&(x.food.per100.p>=3||x.food.per100.c>=10)).map(x=>Object.assign(x,{score:(x.own?300+x.uses*20:0)+x.food.per100.kcal/4+x.food.per100.p*2})).sort((a,b)=>b.score-a.score);
   const pick=c.slice(0,4);return{kind:'kcal',need,items:pick.map(x=>({food:x.food,own:x.own,por:portionFor(x.food,Math.min(need,350),'kcal')})).filter(x=>x.por)}}
  return null}
 let gapList=[];
 function renderGap(iso){const g=gapIdeas(iso);if(!g||!g.items.length)return '';gapList=g.items;
- const title=g.kind==='p'?(g.need>40?`<b>${Math.ceil(g.need)} g</b> protein to go. That's a lot for one sitting, so spread it over your next meals or snacks. Good options:`:`<b>${Math.ceil(g.need)} g</b> protein to go. Any one of these closes it:`):`Protein's done, but you're <b>${Math.round(g.need)} kcal</b> under your calorie target. Easy ways to top up:`;
- return `<div class="card gapcard"><h2>${g.kind==='p'?'Close the gap':'Room for more fuel'}</h2><p class="small" style="margin:0 0 4px">${title}</p>
+ const title=g.kind==='c'?`Protein's covered, but you're <b>${Math.ceil(g.need)} g</b> under your carb floor. Fibre-rich options, ideally around training:`:g.kind==='p'?(g.need>40?`<b>${Math.ceil(g.need)} g</b> protein to go. That's a lot for one sitting, so spread it over your next meals or snacks. Good options:`:`<b>${Math.ceil(g.need)} g</b> protein to go. Any one of these closes it:`):`Protein's done, but you're <b>${Math.round(g.need)} kcal</b> under your calorie target. Easy ways to top up:`;
+ return `<div class="card gapcard"><h2>${g.kind==='p'?'Close the gap':g.kind==='c'?'Reach your carb floor':'Room for more fuel'}</h2><p class="small" style="margin:0 0 4px">${title}</p>
   ${g.items.map((x,i)=>{const f=x.food,p=x.por,m=entryMacros({g:p.g,per100:f.per100});const amt=p.servings!=null?(p.servings+(p.servings===1?' serving':' servings')+(!f.unitOnly?' ('+fmtG(p.g)+' g)':f.servingLabel&&f.servingLabel!=='1 serving'?' ('+f.servingLabel+(p.servings===1?'':' each')+')':'')):fmtG(p.g)+' g';
    const full=g.kind==='p'?(g.need>40||m.p>=g.need-1):true;
-   return `<button class="frow gaprow" data-a="fgap" data-k="${i}"><span class="fn">${esc(f.name)}${x.own?' <i class="owntag">your food</i>':''}<small>${esc(amt)}${!full?', covers '+Math.round(m.p)+' of '+Math.ceil(g.need)+' g':''}</small></span><span class="fm">${g.kind==='p'?'+'+r1(m.p)+' g P':'+'+Math.round(m.kcal)+' kcal'}<small>${g.kind==='p'?Math.round(m.kcal)+' kcal':'P '+r1(m.p)+' g'}</small></span></button>`}).join('')}
+   return `<button class="frow gaprow" data-a="fgap" data-k="${i}"><span class="fn">${esc(f.name)}${x.own?' <i class="owntag">your food</i>':''}<small>${esc(amt)}${!full?', covers '+Math.round(m.p)+' of '+Math.ceil(g.need)+' g':''}</small></span><span class="fm">${g.kind==='p'?'+'+r1(m.p)+' g P':g.kind==='c'?'+'+r1(m.c)+' g C':'+'+Math.round(m.kcal)+' kcal'}<small>${g.kind==='p'?Math.round(m.kcal)+' kcal':g.kind==='c'?Math.round(m.kcal)+' kcal, P '+r1(m.p)+' g':'P '+r1(m.p)+' g'}</small></span></button>`}).join('')}
   <p class="small muted" style="margin:8px 0 0">Tap one to adjust the amount and add it.</p></div>`}
 function mealByTime(){const hr=new Date().getHours();return hr<11?'breakfast':hr<15?'lunch':hr>=17&&hr<21?'dinner':'snacks'}
 
@@ -1079,6 +1097,8 @@ function computeInsights(){
  if(pmin&&logged.length>=4){const hit=logged.filter(x=>dayTotals(x.iso).p>=pmin).length;
   if(hit/logged.length<.5)I.push({tone:'watch',title:`Protein target hit on ${hit} of ${logged.length} logged days`,tip:'Aim for 25–35 g at each meal rather than catching up at night. The Close the gap card on the Food tab suggests portions from foods you already eat.'});
   else if(hit/logged.length>=.8)I.push({tone:'good',title:`Protein on target ${hit} of ${logged.length} logged days`,tip:'Great consistency. This is the nutrition habit that matters most for growth.'})}
+ {const cmn=num(T.cmin);if(cmn&&logged.length>=4){const low=logged.filter(x=>x.iso<isoToday()&&dayTotals(x.iso).c<cmn).length;
+  if(low>=3)I.push({tone:'watch',title:`Carbs under your ${cmn} g floor on ${low} days this week`,tip:'While you are breastfeeding with LADA, keep carbs at or above your floor rather than as low as possible. Add legumes, berries or dairy, ideally around training. Nausea, vomiting, stomach pain or unusual tiredness need checking straight away.'})}}
  if(kt&&logged.length>=4){const under=logged.filter(x=>dayTotals(x.iso).kcal<kt-300).length;
   if(under>=4)I.push({tone:'watch',title:`Calories more than 300 under target on ${under} of ${logged.length} days`,tip:'Your plan is weight-stable or a small surplus while building muscle. Add energy around foods you already eat, especially on training days.'+(stalls.length?' This may also be why a lift has stalled.':'')})}
  // bodyweight trend
