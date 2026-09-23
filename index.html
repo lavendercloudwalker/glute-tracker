@@ -228,6 +228,30 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 @keyframes fall{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.confetti{display:none}}
 
+
+/* Consistency tracker */
+.cstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 14px}
+.cstat{border:1.5px solid rgba(255,110,199,.45);border-radius:14px;padding:10px 6px 8px;text-align:center;background:rgba(10,3,26,.55)}
+.cv{display:block;font-family:var(--retro);font-size:30px;line-height:1.05;color:var(--pink);text-shadow:var(--glow-pink)}
+.cv small{font-size:16px;color:var(--muted);text-shadow:none}
+.cl{display:block;font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);line-height:1.3;margin-top:3px}
+.cgrid{display:grid;grid-template-columns:16px repeat(16,1fr);gap:3px;align-items:center}
+.cc{aspect-ratio:1;border:0;padding:0;border-radius:4px;min-width:0}
+.cc.lbl,.cc.wk{aspect-ratio:auto;font-family:var(--retro);font-size:10px;color:var(--dim);text-align:center;background:none}
+.cc.wk.now{color:var(--yellow);text-shadow:0 0 6px rgba(255,226,89,.7)}
+.c-done{background:var(--sunset);box-shadow:0 0 6px rgba(255,110,199,.7)}
+.c-part{background:rgba(255,110,199,.35);box-shadow:inset 0 0 0 1px var(--pink)}
+.c-move{background:var(--cyan);box-shadow:0 0 5px rgba(45,226,230,.6)}
+.c-rest{background:repeating-linear-gradient(45deg,var(--violet) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1px var(--violet)}
+.c-miss{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,84,112,.55)}
+.c-todo{background:transparent;box-shadow:inset 0 0 0 1.5px var(--pink)}
+.c-off{background:rgba(157,107,255,.10)}
+.c-future{background:rgba(157,107,255,.06)}
+.cc.dlw.c-future,.cc.dlw.c-off{background:rgba(157,107,255,.16)}
+.cc.tdy{outline:2px solid var(--yellow);outline-offset:1px}
+.clegend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:12px;font-size:12px;color:var(--muted)}
+.clegend span{display:flex;align-items:center;gap:5px}
+.clegend i{width:11px;height:11px;border-radius:3px;display:inline-block}
 </style>
 </head>
 <body>
@@ -624,6 +648,54 @@ function renderMeasure(w,dk,o,label){
  <textarea class="note" data-f="meas.notes" placeholder="Symptoms, recovery, anything notable">${esc(m.notes||'')}</textarea></div>`;
 }
 
+/* ================= CONSISTENCY ================= */
+function isActiveDay(o){return !!o.complete||(num(getPath(o,'daily.walk'))||0)>0||!!getPath(o,'daily.yoga')||(num(getPath(o,'daily.meals'))||0)>0}
+function consistency(){
+ const tp=todayPos();const tIdx=tp.out==='before'?-1:tp.out==='after'?999:orderIdx(tp.w,DAYS[tp.d]);
+ const cells={};let planned=0,kept=0,sessions=0,active=0;const weekKept={};
+ for(let w=1;w<=16;w++){let wk=0,wkPlanned=0;
+  DAYS.forEach((dk,di)=>{const idx=orderIdx(w,dk),o=getDay(w,dk),train=TRAIN.includes(dk),future=idx>tIdx,isToday=idx===tIdx;
+   const red=getPath(o,'checkin.light')==='red';let st;
+   if(train){
+    if(o.complete)st='done';else if(red)st='rest';else if(dayProgress(w,dk).done>0)st='part';else if(future)st='future';else if(isToday)st='todo';else st='miss';
+    if(o.complete)sessions++;
+    const counts=!future&&!(isToday&&st==='todo');
+    if(counts){planned++;wkPlanned++;if(st==='done'||st==='rest'){kept++;wk++}}
+   }else{st=isActiveDay(o)?'move':future?'future':'off'}
+   if(!future&&isActiveDay(o))active++;
+   cells[w+'-'+di]={st,isToday}});
+  weekKept[w]={kept:wk,planned:wkPlanned,full:wk===4};
+ }
+ // streak of weeks with all 4 sessions kept (a Red rest day counts as kept)
+ let streak=0,best=0,run=0;const lastW=Math.min(tp.w,16);
+ for(let w=1;w<=lastW;w++){const finished=w<tp.w||tp.out==='after';
+  if(weekKept[w].full){run++;best=Math.max(best,run)}else if(finished){run=0}}
+ if(tp.out!=='before'){
+  streak=0;let w=lastW;if(!weekKept[w].full&&!(tp.out==='after'))w--;
+  while(w>=1&&weekKept[w].full){streak++;w--}}
+ return {cells,planned,kept,sessions,active,streak,best,tp,weekKept};
+}
+function renderConsistency(){
+ const c=consistency(),tp=c.tp;
+ const pct=c.planned?Math.round(c.kept/c.planned*100):null;
+ let h=`<div class="card consist"><h2>Consistency</h2>`;
+ if(tp.out==='before'){h+=`<p class="small muted" style="margin:0 0 10px">Your first session is on ${fmtDate(dateOf(1,0))}. Every day you train or move will light up here.</p>`}
+ h+=`<div class="cstats">
+  <div class="cstat"><span class="cv">${c.planned?c.kept+'<small>/'+c.planned+'</small>':'0'}</span><span class="cl">sessions kept${pct!=null?'<br>'+pct+'%':''}</span></div>
+  <div class="cstat"><span class="cv">${c.streak}</span><span class="cl">week streak<br>best ${c.best}</span></div>
+  <div class="cstat"><span class="cv">${c.active}</span><span class="cl">active days<br>so far</span></div></div>`;
+ // grid: 7 rows (days) x 16 columns (weeks)
+ h+=`<div class="cgrid" role="grid" aria-label="Consistency grid, weeks 1 to 16"><span class="cc lbl"></span>`;
+ for(let w=1;w<=16;w++)h+=`<span class="cc wk ${w===tp.w&&tp.out!=='before'?'now':''}">${w}</span>`;
+ DAYS.forEach((dk,di)=>{h+=`<span class="cc lbl">${DAYNAMES[di][0]}</span>`;
+  for(let w=1;w<=16;w++){const x=c.cells[w+'-'+di];
+   h+=`<button class="cc c-${x.st}${x.isToday?' tdy':''}${w===9?' dlw':''}" data-a="goto" data-w="${w}" data-d="${di}" aria-label="Week ${w} ${DAYNAMES[di]}: ${({done:'session complete',rest:'rest day (Red)',part:'partly logged',miss:'missed',todo:'today',future:'upcoming',move:'walk or yoga',off:'rest day'})[x.st]}"></button>`}});
+ h+=`</div><div class="clegend"><span><i class="c-done"></i>Session</span><span><i class="c-part"></i>Partly logged</span><span><i class="c-move"></i>Walk / yoga</span><span><i class="c-rest"></i>Red rest</span><span><i class="c-miss"></i>Missed</span></div>`;
+ if(tp.out!=='before'&&tp.out!=='after'){const wk=c.weekKept[tp.w];const left=TRAIN.filter(dk=>orderIdx(tp.w,dk)>=orderIdx(tp.w,DAYS[tp.d])&&!getDay(tp.w,dk).complete).length;
+  h+=`<p class="small" style="margin:10px 0 0">This week: <b>${TRAIN.filter(dk=>getDay(tp.w,dk).complete).length} of 4</b> sessions done${left?`, ${left} still to come`:''}. Tap any square to open that day.</p>`}
+ h+=`<p class="small muted" style="margin:6px 0 0">A training day marked Red counts as kept: resting when your body needs it is part of the plan.</p></div>`;
+ return h;
+}
 /* ================= RENDER: PROGRESS ================= */
 function spark(points){
  if(points.length<2)return '';
@@ -633,7 +705,7 @@ function spark(points){
  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>${points.map(p=>`<circle cx="${px(p[0])}" cy="${py(p[1])}" r="3.5" fill="var(--accent)"/>`).join('')}</svg>`;
 }
 function renderProgress(){
- let h='';
+ let h=renderConsistency();
  // Measurements
  const rows=CP_ORDER.map(k=>{const [w,d]=k.split('-');const m=getDay(+w,d).meas||{};return{k,label:CHECKPOINTS[k],w:+w,d,m}});
  const b=rows[0].m;const dl=(a,bb)=>{a=num(a);bb=num(bb);return a!=null&&bb!=null?(a-bb>=0?'+':'')+Math.round((a-bb)*10)/10:''};
@@ -763,6 +835,7 @@ document.addEventListener('click',ev=>{
  else if(a==='t30'){timer.end+=30000}
  else if(a==='tstop'){stopTimer()}
  else if(a==='angle'){view.angle=b.dataset.v;render()}
+ else if(a==='goto'){view.tab='day';view.w=+b.dataset.w;view.d=+b.dataset.d;render();window.scrollTo(0,0)}
  else if(a==='csv')exportCSV();
  else if(a==='backup')exportBackup();
  else if(a==='restore')document.getElementById('restoreFile').click();
