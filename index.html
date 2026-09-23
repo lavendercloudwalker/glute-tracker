@@ -351,6 +351,34 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .bkready.show{display:flex}
 .bkin{width:100%;max-width:536px;background:linear-gradient(180deg,#1E0A3C,#12052B);border:2px solid var(--yellow);border-radius:20px;padding:16px;box-shadow:0 0 24px rgba(255,226,89,.45)}
 .bkin h2{color:var(--yellow)}
+
+/* Ghost camera */
+.phwrap{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ghostbtn{border:1.5px solid rgba(45,226,230,.55);background:rgba(10,3,26,.7);color:var(--cyan);border-radius:999px;min-height:36px;font-size:12.5px;font-weight:700;padding:0 6px;white-space:nowrap}
+.ghostbtn .gi{text-shadow:var(--glow-cyan)}
+.ghostcam{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;background:#07020F;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.ghostcam.show{display:flex}
+.gctop{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;font-family:var(--retro);color:#fff;text-align:center}
+.gctop small{display:block;font-family:var(--sans);font-size:12px;color:var(--cyan)}
+.gcframe{position:relative;margin:0 auto;width:min(100vw,calc((100dvh - 250px) * .75));aspect-ratio:3/4;overflow:hidden;border-radius:14px;border:1.5px solid rgba(255,110,199,.5);background:#000}
+.gcframe video,.gcframe>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gcframe .mir{transform:scaleX(-1)}
+.gcghost{pointer-events:none;mix-blend-mode:screen;filter:saturate(.6)}
+.gcgrid{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,transparent calc(33.33% - .5px),rgba(45,226,230,.35) calc(33.33% - .5px) calc(33.33% + .5px),transparent 0,transparent calc(50% - .5px),rgba(255,110,199,.5) calc(50% - .5px) calc(50% + .5px),transparent 0,transparent calc(66.66% - .5px),rgba(45,226,230,.35) calc(66.66% - .5px) calc(66.66% + .5px),transparent 0),linear-gradient(180deg,transparent calc(33.33% - .5px),rgba(45,226,230,.35) calc(33.33% - .5px) calc(33.33% + .5px),transparent 0,transparent calc(66.66% - .5px),rgba(45,226,230,.35) calc(66.66% - .5px) calc(66.66% + .5px),transparent 0)}
+.gccount{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--neon);font-size:110px;color:var(--pink);text-shadow:var(--glow-pink);pointer-events:none}
+.gcmsg{position:absolute;left:12px;right:12px;bottom:12px;margin:0;text-align:center;font-size:14px;color:#fff;text-shadow:0 1px 4px #000}
+.gcframe.flash::after{content:"";position:absolute;inset:0;background:#fff;animation:gcflash .35s ease-out forwards}
+@keyframes gcflash{from{opacity:.9}to{opacity:0}}
+.gcctrl{padding:10px 16px 0;max-width:560px;margin:0 auto;width:100%}
+.gcslider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:1px}
+.gcslider input{flex:1;accent-color:var(--pink)}
+.gcbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;max-width:560px;margin:0 auto;width:100%}
+.gcbtn{border:1.5px solid var(--cyan);background:rgba(10,3,26,.7);color:var(--cyan);border-radius:999px;min-height:44px;padding:0 16px;font-weight:700}
+.gcsmall{min-width:98px;font-size:13px;padding:0 10px}
+.shutter{flex:none;width:74px;height:74px;border-radius:50%;border:4px solid #fff;background:var(--sunset);box-shadow:0 0 20px rgba(255,110,199,.7)}
+.shutter:active{transform:scale(.94)}
+.gclib{display:block;text-align:center;color:var(--pink);font-size:14px;text-decoration:underline;padding:0 0 10px;position:relative}
+.gclib input{position:absolute;inset:0;opacity:0}
 </style>
 </head>
 <body>
@@ -1109,7 +1137,7 @@ function renderMeasure(w,dk,o,label){
  const m=o.meas||{},ph=m.photos||{};const avg=weekWeightAvg(w);
  const base=getDay(1,'mon').meas||{};
  const delta=(k)=>{if(label==='Baseline')return '';const a=num(m[k]),b=num(base[k]);return a!=null&&b!=null?` <span class="muted">(${a-b>=0?'+':''}${Math.round((a-b)*10)/10} cm vs baseline)</span>`:''};
- const slot=(k,n)=>{const u=photoURL(ph[k]);return `<label class="ph">${u?`<img src="${esc(u)}" alt="${n} photo">`:`<span class="plus">+</span><span>${n}</span>`}<span class="lab">${n}</span><input type="file" accept="image/*" data-photo="${k}" aria-label="${n} photo"></label>`};
+ const slot=(k,n)=>{const u=photoURL(ph[k]);return `<div class="phwrap"><label class="ph">${u?`<img src="${esc(u)}" alt="${n} photo">`:`<span class="plus">+</span><span>${n}</span>`}<span class="lab">${n}</span><input type="file" accept="image/*" data-photo="${k}" aria-label="${n} photo from library"></label><button class="ghostbtn" data-a="ghostcam" data-k="${k}"><span class="gi">◎</span> Ghost cam</button></div>`};
  return `<div class="card" style="border:2px solid var(--accent)"><h2>${esc(label)}: measure + photos</h2>
  <p class="small">Measure in the morning, same tape position and posture. Glutes at the fullest point. Photos: same light, distance and pose.</p>
  <div class="grid3">
@@ -1296,7 +1324,7 @@ document.addEventListener('change',async ev=>{
  if(t.dataset.cb){mutDay(w,dk,o=>setPath(o,t.dataset.cb,t.checked));const det=t.closest('details');if(det){const all=det.querySelectorAll('input[type=checkbox]');const n=[...all].filter(x=>x.checked).length;const c=det.querySelector('.count');if(c)c.firstChild.nodeValue=n+'/'+all.length+' '}}
  if(t.dataset.lvl){mutDay(w,dk,o=>setPath(o,'ex.'+t.dataset.lvl+'.level',t.value));render()}
  if(t.dataset.set){if(t.value){store.settings[t.dataset.set]=t.value;cacheLocal();toast('Start date updated')}}
- if(t.dataset.photo&&t.files&&t.files[0]){await savePhoto(w,dk,t.dataset.photo,t.files[0])}
+ if(t.dataset.photo&&t.files&&t.files[0]){const f=t.files[0];if(document.getElementById('ghostcam')&&document.getElementById('ghostcam').classList.contains('show')){const tg=cam.target;closeGhostCam();await savePhoto(tg.w,tg.dk,tg.angle,f)}else await savePhoto(w,dk,t.dataset.photo,f)}
  if(t.id==='restoreFile'&&t.files&&t.files[0]){restore(t.files[0])}
 });
 function updateCount(sec,f){const m=f.match(/^ex\.([^.]+)\./);if(!m)return;const {w,d}=view,dk=DAYS[d];const ex=findEx(dk,m[1]);if(!ex)return;
@@ -1305,6 +1333,7 @@ function updateCount(sec,f){const m=f.match(/^ex\.([^.]+)\./);if(!m)return;const
 document.addEventListener('click',ev=>{
  const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;const {w,d}=view,dk=DAYS[d];
  if((a==='sheetclose'||a==='stab'||a[0]==='f')&&a!=='foodcsv'){handleFoodAction(a,b);return}
+ if(a==='ghostcam'||a.startsWith('gc')){handleCamAction(a,b);return}
  if(a==='tab'){view.tab=b.dataset.v;render();window.scrollTo(0,0)}
  else if(a==='week'){const nw=+b.dataset.v;if(nw>=1&&nw<=16){view.w=nw;render()}}
  else if(a==='day'){view.d=+b.dataset.v;render();window.scrollTo(0,0)}
@@ -1380,6 +1409,69 @@ function tick(){const left=Math.round((timer.end-Date.now())/1000);const el=docu
  document.getElementById('tt').textContent=(left<0?'+':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0');
  if(left<=0&&!el.classList.contains('over')){el.classList.add('over');document.getElementById('tl').textContent='Rest done. Next set when ready.';try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
  if(left<-300)stopTimer()}
+
+/* ================= GHOST CAMERA ================= */
+// Live camera with an earlier photo laid faintly over it, so every checkpoint matches pose and distance.
+const cam={stream:null,facing:'environment',timer:0,ghost:.35,show:true,ref:'base',target:null,shot:null,counting:false};
+function ghostRefs(w,dk,angle){const cur=orderIdx(w,dk);const out=[];
+ CP_ORDER.forEach(k=>{const [cw,cd]=k.split('-');if(orderIdx(+cw,cd)>=cur)return;const ref=(getDay(+cw,cd).meas||{}).photos;const u=ref&&photoURL(ref[angle]);if(u)out.push({label:CHECKPOINTS[k].replace(/ \(.*\)/,''),url:u})});
+ return {base:out[0]||null,last:out.length>1?out[out.length-1]:null}}
+function camEl(){let el=document.getElementById('ghostcam');if(!el){el=document.createElement('div');el.id='ghostcam';el.className='ghostcam';document.body.appendChild(el)}return el}
+function renderCam(){
+ const el=camEl(),t=cam.target,refs=ghostRefs(t.w,t.dk,t.angle);const ref=cam.ref==='last'&&refs.last?refs.last:refs.base;const mir=cam.facing==='user'?' mir':'';
+ const name={front:'Front',side:'Side',back:'Back'}[t.angle];
+ if(cam.shot){el.innerHTML=`<div class="gctop"><button class="xbtn" data-a="gcclose" aria-label="Close">×</button><span>${name} photo</span><span></span></div>
+  <div class="gcframe"><img src="${cam.shot.url}" alt="Your new photo"></div>
+  <div class="gcbar"><button class="gcbtn" data-a="gcretake">Retake</button><button class="big" style="margin:0;flex:1" data-a="gcuse">Use photo</button></div>`;return}
+ el.innerHTML=`<div class="gctop"><button class="xbtn" data-a="gcclose" aria-label="Close">×</button><span>${name} photo${ref&&cam.show?'<small>ghost: '+esc(ref.label)+'</small>':''}</span><button class="xbtn" data-a="gcflip" aria-label="Switch camera">⟲</button></div>
+  <div class="gcframe"><video id="gcvideo" class="${mir}" playsinline muted autoplay></video>${ref&&cam.show?`<img class="gcghost${mir}" src="${esc(ref.url)}" style="opacity:${cam.ghost}" alt="">`:''}<div class="gcgrid"></div><div class="gccount" id="gccount"></div><p class="gcmsg" id="gcmsg"></p></div>
+  <div class="gcctrl">${ref?`<label class="gcslider"><span>Ghost</span><input type="range" min="0" max="70" value="${Math.round(cam.ghost*100)}" data-gc="ghost"></label>`:`<p class="small muted" style="margin:0">No earlier ${name.toLowerCase()} photo yet, so no ghost this time. Use the grid to line up, and this photo becomes the ghost next time.</p>`}
+  ${refs.base&&refs.last?`<div class="seg" style="margin-top:8px"><button class="${cam.ref==='base'?'on':''}" data-a="gcref" data-v="base">Ghost: ${esc(refs.base.label)}</button><button class="${cam.ref==='last'?'on':''}" data-a="gcref" data-v="last">Ghost: ${esc(refs.last.label)}</button></div>`:''}</div>
+  <div class="gcbar"><button class="gcbtn gcsmall" data-a="gctimer">${cam.timer?cam.timer+' s timer':'No timer'}</button><button class="shutter" data-a="gcshoot" aria-label="Take photo"></button><button class="gcbtn gcsmall" data-a="gctoggle">${cam.show?'Hide ghost':'Show ghost'}</button></div>
+  <label class="gclib">Or choose from your library<input type="file" accept="image/*" data-photo="${t.angle}"></label>`;
+ const v=document.getElementById('gcvideo');if(cam.stream&&v){v.srcObject=cam.stream;v.play().catch(()=>{})}
+}
+async function startCam(){
+ stopCamStream();const msg=t=>{const m=document.getElementById('gcmsg');if(m)m.textContent=t};
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){msg('The camera is not available here. Use "choose from your library" below.');return}
+ try{cam.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:cam.facing,width:{ideal:1920},height:{ideal:1920}},audio:false});
+  const v=document.getElementById('gcvideo');if(v){v.srcObject=cam.stream;await v.play().catch(()=>{})}}
+ catch(e){msg('Could not open the camera. Check camera permission for this app, or choose a photo from your library below.')}
+}
+function stopCamStream(){if(cam.stream){cam.stream.getTracks().forEach(t=>t.stop());cam.stream=null}}
+function openGhostCam(w,dk,angle){cam.target={w,dk,angle};cam.shot=null;cam.counting=false;const refs=ghostRefs(w,dk,angle);if(!refs.last)cam.ref='base';
+ renderCam();camEl().classList.add('show');document.body.style.overflow='hidden';startCam()}
+function closeGhostCam(){stopCamStream();cam.counting=false;if(cam.shot)URL.revokeObjectURL(cam.shot.url);cam.shot=null;const el=document.getElementById('ghostcam');if(el){el.classList.remove('show');el.innerHTML=''}document.body.style.overflow=''}
+function captureFrame(){
+ const v=document.getElementById('gcvideo');if(!v||!v.videoWidth){toast('Camera is not ready yet');return}
+ const vw=v.videoWidth,vh=v.videoHeight,ar=3/4;let sx=0,sy=0,sw=vw,sh=vh;
+ if(vw/vh>ar){sw=vh*ar;sx=(vw-sw)/2}else{sh=vw/ar;sy=(vh-sh)/2}
+ const scale=Math.min(1,1600/sh);const c=document.createElement('canvas');c.width=Math.round(sw*scale);c.height=Math.round(sh*scale);
+ c.getContext('2d').drawImage(v,sx,sy,sw,sh,0,0,c.width,c.height);
+ c.toBlob(b=>{if(!b){toast('Could not take the photo');return}cam.shot={blob:b,url:URL.createObjectURL(b)};stopCamStream();renderCam()},'image/jpeg',.9);
+}
+async function shoot(){if(cam.counting)return;
+ if(!cam.timer){flashShot();captureFrame();return}
+ cam.counting=true;const el=()=>document.getElementById('gccount');let n=cam.timer;
+ const beep=()=>{const s=store.settings.sound;if(s&&s.on){const ctx=audioCtx();if(ctx)blip(ctx,ctx.currentTime+.01)}};
+ unlockAudio();
+ while(n>0&&cam.counting){if(el())el().textContent=n;beep();await new Promise(r=>setTimeout(r,1000));n--}
+ if(el())el().textContent='';if(!cam.counting)return;cam.counting=false;flashShot();captureFrame();
+}
+function flashShot(){const f=document.querySelector('.gcframe');if(f){f.classList.remove('flash');void f.offsetWidth;f.classList.add('flash')}}
+document.addEventListener('input',ev=>{const t=ev.target;if(t.dataset&&t.dataset.gc==='ghost'){cam.ghost=(+t.value)/100;const g=document.querySelector('.gcghost');if(g)g.style.opacity=cam.ghost}});
+async function handleCamAction(a,b){
+ if(a==='ghostcam'){openGhostCam(view.w,DAYS[view.d],b.dataset.k)}
+ else if(a==='gcclose'){closeGhostCam()}
+ else if(a==='gcflip'){cam.facing=cam.facing==='user'?'environment':'user';renderCam();startCam()}
+ else if(a==='gctimer'){cam.timer=cam.timer===0?3:cam.timer===3?10:0;renderCam();if(cam.stream){const v=document.getElementById('gcvideo');if(v){v.srcObject=cam.stream;v.play().catch(()=>{})}}}
+ else if(a==='gctoggle'){cam.show=!cam.show;renderCam()}
+ else if(a==='gcref'){cam.ref=b.dataset.v;renderCam()}
+ else if(a==='gcshoot'){shoot()}
+ else if(a==='gcretake'){if(cam.shot)URL.revokeObjectURL(cam.shot.url);cam.shot=null;renderCam();startCam()}
+ else if(a==='gcuse'){const t=cam.target,blob=cam.shot.blob;closeGhostCam();await savePhoto(t.w,t.dk,t.angle,blob)}
+ else return false;return true;
+}
 
 /* ================= PHOTOS ================= */
 function compress(file,max,q){return new Promise((res,rej)=>{const img=new Image();const u=URL.createObjectURL(file);img.onload=()=>{let {width:W,height:H}=img;const s=Math.min(1,max/Math.max(W,H));const c=document.createElement('canvas');c.width=Math.round(W*s);c.height=Math.round(H*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?res(b):rej(new Error('compress')),'image/jpeg',q)};img.onerror=()=>rej(new Error('read'));img.src=u})}
