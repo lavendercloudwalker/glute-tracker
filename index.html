@@ -311,6 +311,17 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .vbtn span{font-weight:700;font-size:14px;line-height:1.15;min-width:0}
 .vbtn small{display:block;font-weight:400;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vrow .more{flex:none}
+
+/* Ramp-up sets */
+.wu{margin-top:12px;border:1px dashed rgba(255,226,89,.55);border-radius:14px;padding:10px 12px;background:rgba(255,226,89,.05)}
+.wuh{font-family:var(--retro);font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:var(--yellow);text-shadow:0 0 8px rgba(255,226,89,.5)}
+.wus{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.wuarrow{color:var(--dim);font-family:var(--retro)}
+.wuchip{border:1.5px solid rgba(255,226,89,.45);background:rgba(10,3,26,.7);border-radius:999px;padding:6px 11px;font-size:14px;min-height:38px;color:var(--ink);line-height:1.1}
+.wuchip b{color:#fff}
+.wuchip small{display:block;font-size:10.5px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.wuchip.on{background:rgba(255,226,89,.18);border-color:var(--yellow);box-shadow:0 0 10px rgba(255,226,89,.4)}
+.wuchip.on b{color:var(--yellow)}
 </style>
 </head>
 <body>
@@ -362,7 +373,7 @@ const LADDERS={
 const PLAN={
  mon:{type:'lift',title:"Glutes A",sub:"Heavy tension + core. Your main progression day.",
   walk:"Optional 10–15 min easy walk after dinner.",
-  warm:["3–4 min easy walk or bike","3–5 relaxed 360° breaths","5–8 reps each: bodyweight squat, hip hinge, reverse lunge, adductor rock-back","8–10 bodyweight glute bridges","Ramp the hip thrust: very light ×8–10, ~50–60% ×5–6, ~70–80% ×2–4, optional ~85–90% ×1–2","1–2 ramp sets for the squat pattern"],
+  warm:["3–4 min easy walk or bike","3–5 relaxed 360° breaths","5–8 reps each: bodyweight squat, hip hinge, reverse lunge, adductor rock-back","8–10 bodyweight glute bridges","Hip thrust ramp-up sets (weights shown on the hip thrust card)","Squat pattern ramp-up sets (shown on its card)"],
   cool:LEGCOOL,
   ex:[
    {id:'ht',name:"Hip thrust",variants:["Smith","Barbell","Machine glute drive","Weighted bridge"],sets:3,reps:"6–8",kind:'comp',rest:"2.5–3 min",restS:165,unit:'kg',main:1,cue:"Ribs over pelvis. Full hip extension from the glutes, not a lumbar arch."},
@@ -388,7 +399,7 @@ const PLAN={
  wed:{type:'rest',title:"Walk + yoga",sub:"Recovery. 30–45 min walk at an easy-to-brisk conversational pace, then 20–30 min yoga.",walkMain:"30–45 min",yoga:true},
  thu:{type:'lift',title:"Glutes B",sub:"Unilateral + lengthened glute work, plus a small push-up dose.",
   walk:"Optional 10–15 min walk after a meal.",
-  warm:["3–4 min easy walk or bike","3–5 relaxed 360° breaths","5–6 unweighted split squats per side","5–8 hip hinges","Adductor rock-backs, 5–8 per side","1–2 lighter ramp sets per side for the split squat","1 easy practice set for the hip extension"],
+  warm:["3–4 min easy walk or bike","3–5 relaxed 360° breaths","5–6 unweighted split squats per side","5–8 hip hinges","Adductor rock-backs, 5–8 per side","Split squat ramp-up sets per side (weights shown on its card)","1 easy practice set for the hip extension"],
   cool:LEGCOOL,
   ex:[
    {id:'bss',name:"Split squat",variants:["Bulgarian split squat","Reverse lunge","Smith split squat","High step-up"],sets:3,reps:"8–10",per:"per leg",kind:'comp',rest:"2–3 min",restS:150,unit:'kg',main:1,cue:"Longer stride and a slight forward lean. Keep the pelvis controlled."},
@@ -400,7 +411,7 @@ const PLAN={
   ]},
  fri:{type:'lift',title:"Glutes C",sub:"Glute volume + a skill micro-dose.",
   walk:"Optional gentle walk only. Don't turn it into cardio training.",
-  warm:["2–3 min easy movement","Wrist circles and rocks, 30 s","1 easy pike hold, then do the handstand micro-dose below","3–4 relaxed 360° breaths","8–10 bodyweight bridges","5–6 step-ups or reverse lunges per side","1 light abduction set","2–3 lighter ramp sets for the glute drive; 1 practice set for the step-up"],
+  warm:["2–3 min easy movement","Wrist circles and rocks, 30 s","1 easy pike hold, then do the handstand micro-dose below","3–4 relaxed 360° breaths","8–10 bodyweight bridges","5–6 step-ups or reverse lunges per side","1 light abduction set","Glute drive ramp-up sets (weights shown on its card); 1 practice set for the step-up"],
   cool:LEGCOOL,
   ex:[
    {id:'hs2',name:"Easy handstand micro-dose",ladder:'hand',sets:1,reps:"5–8 min",kind:'skill',rir:"Stop early",rest:"45–90 s",restS:60,unit:'skill',cue:"Stay at or below Tuesday's level. No grinding. Keep it easy in every phase."},
@@ -799,6 +810,30 @@ document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='sq
  if(ev.key==='Enter'&&ev.target.dataset&&ev.target.dataset.sf==='code'){ev.preventDefault();lookupCode(sheet.code)}});
 function protAvg(w){const v=DAYS.map((dk,i)=>{const iso=isoOf(dateOf(w,i));if(hasFood(iso))return dayTotals(iso).p;return num(getPath(getDay(w,dk),'daily.protein'))}).filter(x=>x!=null);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):'NR'}
 
+/* ================= WARM-UP (RAMP-UP) SETS ================= */
+// [fraction of working weight, reps, optional]
+const WU={ht:[[.3,'8–10'],[.55,'5'],[.75,'3'],[.875,'1–2',1]],sq:[[.5,'6'],[.75,'3']],bss:[[.5,'5 per leg'],[.75,'3 per leg']],gd:[[.5,'6'],[.7,'4'],[.85,'2']]};
+function suggestedKg(ex,w,prev){
+ if(!prev)return null;const ls=loggedSets(prev.e);const kgs=ls.map(s=>num(s.kg)).filter(v=>v!=null);if(!kgs.length)return null;
+ const kg=Math.max(...kgs);if(phase(w)==='Deload')return kg;const [,hi]=rng(ex.reps);
+ const need=Math.max(1,setsFor(ex,prev.w,getPath(getDay(prev.w,prev.d),'checkin.light')).s);
+ const allTop=ls.length>=need&&ls.slice(0,need).every(s=>(num(s.reps)||0)>=hi);
+ return allTop?Math.round((kg+(kg<20?1:2.5))*100)/100:kg;
+}
+function roundLoad(x,work){const step=work>=20?2.5:1;return Math.round(x/step)*step}
+function renderWarmup(ex,w,dk,e){
+ const plan=WU[ex.id];if(!plan)return '';
+ const typed=num(getPath(e,'sets.0.kg'));const sug=suggestedKg(ex,w,findPrev(ex.id,w,dk));const work=typed!=null&&typed>0?typed:sug;
+ const done=e.wu||{};
+ let inner;
+ if(!(work>0)){inner=`<p class="small muted" style="margin:4px 0 0">Enter your working weight in set 1 and your ramp-up sets appear here.</p>`}
+ else{const seen=new Set();const chips=[];const light=ex.id==='bss'&&work<12;const pl=light?[[0,'6 per leg'],[.5,'3 per leg']]:plan;
+  pl.forEach(([fr,reps,opt],i)=>{let kg=roundLoad(work*fr,work);if(kg>=work)return;const key=kg>0?kg:0;if(seen.has(key))return;seen.add(key);
+   chips.push(`<button class="wuchip ${done[i]?'on':''}" data-a="wutick" data-ex="${ex.id}" data-i="${i}"><b>${kg>0?kg+' kg':(ex.id==='bss'?'Bodyweight':'Very light')}</b> × ${reps}${opt?'<small>optional</small>':''}</button>`)});
+  inner=`<div class="wus">${chips.join('<span class="wuarrow">›</span>')}</div><p class="small muted" style="margin:6px 0 0">Based on ${typed!=null&&typed>0?'your':'today\'s suggested'} <b>${work} kg</b>${typed!=null&&typed>0?'':'. Change set 1 and these update'}. Easy reps, not logged.</p>`}
+ return `<div class="wu" data-wu="${ex.id}"><div class="wuh">Ramp-up sets</div>${inner}</div>`;
+}
+
 /* ================= FORM VIDEOS ================= */
 // YouTube search phrases for every exercise, alternative and skill level
 const VQ={
@@ -947,6 +982,7 @@ function renderEx(w,dk,o,ex,light){
  if(prev||hint){
   h+=`<div class="last">${prev?`<div><b>Last time</b> (week ${prev.w}, ${DAYNAMES[DAYS.indexOf(prev.d)].slice(0,3)}${prev.e.variant?', '+esc(prev.e.variant):''}): ${esc(prevSummary(ex,prev.e))}</div>`:''}${hint?`<div class="hint">${esc(hint)}</div>`:''}
   ${prev&&(ex.unit==='kg'||ex.unit==='carry')&&loggedSets(prev.e).some(s=>num(s.kg)!=null)?`<button class="uselast" data-a="uselast" data-ex="${ex.id}">Fill today's kg from last time</button>`:''}</div>`}
+ h+=renderWarmup(ex,w,dk,e);
  const prevSets=prev?loggedSets(prev.e):[];
  const row=(i,isOpt)=>{const s=(e.sets&&e.sets[i])||{},ps=prevSets[i]||prevSets[prevSets.length-1]||{};
   return `<div class="setrow ${cols.length===1?'one':''} ${isOpt?'optrow':''}"><span class="sn">${ex.kind==='skill'?'':i+1}</span>
@@ -1150,7 +1186,8 @@ function render(){
 /* ================= EVENTS ================= */
 document.addEventListener('input',ev=>{
  const t=ev.target;const {w,d}=view,dk=DAYS[d];
- if(t.dataset.f){mutDay(w,dk,o=>setPath(o,t.dataset.f,t.value));const sec=t.closest('.ex');if(sec)updateCount(sec,t.dataset.f)}
+ if(t.dataset.f){mutDay(w,dk,o=>setPath(o,t.dataset.f,t.value));const sec=t.closest('.ex');if(sec)updateCount(sec,t.dataset.f);
+  const mm=t.dataset.f.match(/^ex\.([^.]+)\.sets\.0\.kg$/);if(mm&&WU[mm[1]]&&sec){const box=sec.querySelector('[data-wu]');const ex=findEx(dk,mm[1]);if(box&&ex){const tmp=document.createElement('div');tmp.innerHTML=renderWarmup(ex,w,dk,(getDay(w,dk).ex||{})[mm[1]]||{});box.replaceWith(tmp.firstElementChild)}}}
 });
 document.addEventListener('change',async ev=>{
  const t=ev.target;const {w,d}=view,dk=DAYS[d];
@@ -1184,6 +1221,7 @@ document.addEventListener('click',ev=>{
  else if(a==='t30'){timer.end+=30000}
  else if(a==='tstop'){stopTimer()}
  else if(a==='angle'){view.angle=b.dataset.v;render()}
+ else if(a==='wutick'){const p='ex.'+b.dataset.ex+'.wu.'+b.dataset.i;let now;mutDay(w,dk,o=>{now=!getPath(o,p);setPath(o,p,now)});b.classList.toggle('on',now)}
  else if(a==='vsave'){const q=b.dataset.q;store.settings.videos=store.settings.videos||{};const cur=store.settings.videos[q]||'';
   const v=prompt('Paste a video link for '+b.dataset.l+(cur?'. Leave it empty to go back to the YouTube search.':'. Tip: in YouTube tap Share, then Copy link.'),cur);
   if(v===null)return;const t=v.trim();

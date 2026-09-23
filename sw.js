@@ -1,5 +1,5 @@
 // Bump this number whenever you upload a new version of the app
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE = 'glute-tracker-' + VERSION;
 const CORE = ['./', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
