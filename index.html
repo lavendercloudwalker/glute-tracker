@@ -343,6 +343,14 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .prn small,.prw small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
 .prn small{color:var(--pink);font-weight:700;font-size:14px}
 .prw{flex:none;text-align:right;font-family:var(--retro);font-size:13px;color:var(--cyan)}
+
+/* Backup reminder */
+.bkcard{border-color:var(--yellow)!important;box-shadow:0 0 16px rgba(255,226,89,.35),inset 0 0 16px rgba(255,226,89,.08)!important}
+.bkcard h2{color:var(--yellow);text-shadow:0 0 8px rgba(255,226,89,.7)}
+.bkready{position:fixed;inset:0;z-index:45;display:none;align-items:flex-end;justify-content:center;background:rgba(8,2,20,.6);padding:0 12px calc(80px + env(safe-area-inset-bottom,0px))}
+.bkready.show{display:flex}
+.bkin{width:100%;max-width:536px;background:linear-gradient(180deg,#1E0A3C,#12052B);border:2px solid var(--yellow);border-radius:20px;padding:16px;box-shadow:0 0 24px rgba(255,226,89,.45)}
+.bkin h2{color:var(--yellow)}
 </style>
 </head>
 <body>
@@ -608,7 +616,7 @@ function entryMacros(e){if(e.quick)return{kcal:+e.kcal||0,p:+e.p||0,c:+e.c||0,f:
 function foodDay(iso){return store.food[iso]||{entries:[]}}
 function dayTotals(iso){const t={kcal:0,p:0,c:0,f:0,fib:0};(foodDay(iso).entries||[]).forEach(e=>{const m=entryMacros(e);for(const k in t)t[k]+=m[k]});return t}
 function hasFood(iso){return (foodDay(iso).entries||[]).length>0}
-function saveFood(){cacheLocal()}
+function saveFood(){store.foodUpdated=Date.now();if(!store.foodFirst)store.foodFirst=store.foodUpdated;cacheLocal()}
 function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function pushRecent(food){if(food.src==='builtin'){store.recent=store.recent.filter(x=>x.id!==food.id)}else{store.recent=store.recent.filter(x=>!(x.name===food.name&&x.brand===food.brand))}
  store.recent.unshift(JSON.parse(JSON.stringify(food)));store.recent=store.recent.slice(0,30)}
@@ -954,7 +962,7 @@ function renderDay(){
  PRC=prCompute();
  const {w,d}=view,dk=DAYS[d],p=PLAN[dk],o=getDay(w,dk),dt=dateOf(w,d);
  const light=getPath(o,'checkin.light');
- let h=`<p class="daytitle">${esc(p.title)}</p><p class="daysub">${fmtDate(dt)}</p><p class="daysub">${esc(p.sub)}</p>`;
+ let h=backupBanner()+`<p class="daytitle">${esc(p.title)}</p><p class="daysub">${fmtDate(dt)}</p><p class="daysub">${esc(p.sub)}</p>`;
  if(p.type==='lift')h+=`<div class="phasenote">${PHASENOTE[phase(w)]}</div>`;
  h+=renderCheckin(w,dk,o,p);
  const cp=CHECKPOINTS[w+'-'+dk];if(cp)h+=renderMeasure(w,dk,o,cp);
@@ -1262,6 +1270,9 @@ function renderSettings(){
  <div class="card"><h2>Programme start</h2><div class="fld"><label>Week 1 Monday</label><input type="date" data-set="startDate" value="${esc(store.settings.startDate)}"></div>
  <p class="small muted">Changing this moves which week counts as "today". Your logged data stays attached to its week and day.</p></div>
  <div class="card"><h2>Storage</h2><p class="status" id="savestatus">${storageLabel()}</p>
+ ${(()=>{const s=backupStatus();const f=s.freq;const fb=(v,t)=>`<button class="${f===v?'on':''}" data-a="bkfreq" data-v="${v}">${t}</button>`;
+  return `<p style="margin:8px 0 0"><b>Last backup:</b> ${s.last?esc(new Date(s.last).toLocaleDateString('en-GB',{day:'numeric',month:'long'}))+' ('+(s.days===0?'today':s.days===1?'yesterday':s.days+' days ago')+')':'never'}</p>
+  <h3>Remind me to back up every</h3><div class="seg">${fb(7,'Week')}${fb(14,'2 weeks')}${fb(28,'4 weeks')}${fb(0,'Never')}</div><div style="height:12px"></div>`})()}
  <div class="seg"><button data-a="backup">Backup file</button><button data-a="restore">Restore backup</button></div></div>
  <div class="card"><h2>Start again</h2><p class="small">Clears every log, measurement and photo link. Download a backup first.</p><button class="ghost" data-a="reset">Clear all data</button></div>`;
 }
@@ -1316,6 +1327,10 @@ document.addEventListener('click',ev=>{
  else if(a==='sndtest'){const ctx=audioCtx();if(!ctx){toast('Sound is not supported here');return}const t=ctx.currentTime+0.05;if(store.settings.sound.count){blip(ctx,t);blip(ctx,t+1);blip(ctx,t+2)}chime(ctx,t+(store.settings.sound.count?3:0))}
  else if(a==='tstop'){stopTimer()}
  else if(a==='angle'){view.angle=b.dataset.v;render()}
+ else if(a==='bksave'){saveBackupNow()}
+ else if(a==='bkcancel'){pendingBackup=null;document.getElementById('bkready').classList.remove('show')}
+ else if(a==='bksnooze'){store.settings.backupSnooze=Date.now()+3*864e5;cacheLocal();render();toast("I'll remind you in 3 days")}
+ else if(a==='bkfreq'){store.settings.backupDays=+b.dataset.v;cacheLocal();render()}
  else if(a==='wutick'){const p='ex.'+b.dataset.ex+'.wu.'+b.dataset.i;let now;mutDay(w,dk,o=>{now=!getPath(o,p);setPath(o,p,now)});b.classList.toggle('on',now)}
  else if(a==='vsave'){const q=b.dataset.q;store.settings.videos=store.settings.videos||{};const cur=store.settings.videos[q]||'';
   const v=prompt('Paste a video link for '+b.dataset.l+(cur?'. Leave it empty to go back to the YouTube search.':'. Tip: in YouTube tap Share, then Copy link.'),cur);
@@ -1382,9 +1397,10 @@ async function savePhoto(w,dk,angle,file){
 async function saveFile(name,data,type){
  const blob=new Blob([data],{type});
  try{const f=new File([blob],name,{type});
-  if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return}}
- catch(e){if(e&&e.name==='AbortError')return}
+  if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return 'shared'}}
+ catch(e){if(e&&e.name==='AbortError')return 'cancelled'}
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+ return 'downloaded';
 }
 function exportFoodCSV(){const rows=[['Date','Meal','Food','Brand','Grams','kcal','Protein g','Carbs g','Fat g','Fibre g']];
  Object.keys(store.food).sort().forEach(iso=>{(store.food[iso].entries||[]).forEach(e=>{const m=entryMacros(e);rows.push([iso,e.meal,e.name||'Quick add',e.brand||'',e.quick?'':e.unitOnly?r1(e.g/100)+' serving(s)':e.g,Math.round(m.kcal),r1(m.p),r1(m.c),r1(m.f),r1(m.fib)])})});
@@ -1399,12 +1415,36 @@ function exportCSV(){
  saveFile('glute-tracker-sets.csv','\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\n'),'text/csv');
 }
 function blobToData(b){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(b)})}
+let pendingBackup=null;
 async function exportBackup(){
  toast('Preparing backup…');
  let photos={};try{const all=await idbAll();for(const k in all)photos[k]=await blobToData(all[k])}catch(e){}
  const d=new Date(),stamp=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
- saveFile('glute-tracker-backup-'+stamp+'.json',JSON.stringify({version:3,exported:d.toISOString(),settings:store.settings,days:store.days,food:store.food,myFoods:store.myFoods,meals:store.meals,recent:store.recent,photos}),'application/json');
+ const data=JSON.stringify({version:3,exported:d.toISOString(),settings:store.settings,days:store.days,food:store.food,myFoods:store.myFoods,meals:store.meals,recent:store.recent,photos});
+ pendingBackup={name:'glute-tracker-backup-'+stamp+'.json',data,photos:Object.keys(photos).length};
+ const mb=(data.length/1048576);
+ let el=document.getElementById('bkready');if(!el){el=document.createElement('div');el.id='bkready';el.className='bkready';document.body.appendChild(el)}
+ el.innerHTML=`<div class="bkin"><h2>Backup ready</h2><p class="small" style="margin:0 0 4px">${pendingBackup.name}<br><span class="muted">${mb<0.1?'Under 0.1':mb.toFixed(1)} MB${pendingBackup.photos?', including '+pendingBackup.photos+' photo'+(pendingBackup.photos===1?'':'s'):''}</span></p>
+  <p class="small muted" style="margin:0 0 12px">Tap Save, then choose <b>Save to Files</b> and pick iCloud Drive, so it survives even if you lose your phone.</p>
+  <div class="seg"><button data-a="bksave" class="on">Save</button><button data-a="bkcancel">Cancel</button></div></div>`;
+ el.classList.add('show');
 }
+async function saveBackupNow(){if(!pendingBackup)return;const r=await saveFile(pendingBackup.name,pendingBackup.data,'application/json');
+ if(r!=='cancelled'){store.settings.lastBackup=Date.now();store.settings.backupSnooze=0;cacheLocal();pendingBackup=null;document.getElementById('bkready').classList.remove('show');render();toast('Backup saved')}}
+/* ================= BACKUP REMINDER ================= */
+function backupStatus(){
+ const freq=store.settings.backupDays==null?14:+store.settings.backupDays;const last=store.settings.lastBackup||0;
+ const changedDays=Object.values(store.days).filter(o=>(o.updated||0)>last).length;const foodChanged=(store.foodUpdated||0)>last;
+ const stamps=Object.values(store.days).map(o=>o.updated||0).filter(Boolean);if(store.foodFirst)stamps.push(store.foodFirst);
+ const first=stamps.length?Math.min(...stamps):0;
+ const since=last||first;const days=since?Math.floor((Date.now()-since)/864e5):0;
+ const due=freq>0&&(changedDays>0||foodChanged)&&since&&days>=freq&&Date.now()>(store.settings.backupSnooze||0);
+ return {due,days,never:!last,changedDays,foodChanged,freq,last};
+}
+function backupBanner(){const s=backupStatus();if(!s.due)return '';
+ const what=[s.changedDays?s.changedDays+' day'+(s.changedDays===1?'':'s')+' of training logs':'',s.foodChanged?'food logs':''].filter(Boolean).join(' and ');
+ return `<div class="card bkcard"><h2>Time for a backup</h2><p class="small" style="margin:0 0 12px">${s.never?'You haven\'t backed up yet':'Your last backup was '+s.days+' days ago'}. ${esc(what.charAt(0).toUpperCase()+what.slice(1))} only live on this phone right now. It takes about 20 seconds.</p>
+  <div class="seg"><button class="on" data-a="backup">Back up now</button><button data-a="bksnooze">In 3 days</button></div></div>`}
 function restore(file){const r=new FileReader();r.onload=async()=>{try{const j=JSON.parse(r.result);if(!j.days)throw 0;
  if(!confirm('Restore this backup? Days in the backup will replace the same days on this phone.'))return;
  Object.assign(store.settings,j.settings||{});for(const id in j.days){store.days[id]=j.days[id]}
