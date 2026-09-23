@@ -1,8 +1,8 @@
 // Bump this number whenever you upload a new version of the app
-const VERSION = 'v1';
+const VERSION = 'v4';
 const CACHE = 'glute-tracker-' + VERSION;
 const CORE = ['./', './index.html', './manifest.webmanifest',
-  './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+  './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
