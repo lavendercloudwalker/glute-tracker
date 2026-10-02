@@ -20,7 +20,7 @@
 <style>
 /* Layout: a single notebook page; dot-grid paper, hairline rules between entries, no boxes */
 :root{
-  --bg:#fbfbf8; --surface:#fbfbf8; --fg:#23252a; --muted:#80827f; --line:#dcdcd6; --dotc:#d9d9d2; --glow:transparent;
+  --bg:#fbfbf8; --surface:#fbfbf8; --fg:#23252a; --muted:#676966; --line:#dcdcd6; --dotc:#d9d9d2; --glow:transparent;
   --accent:#2f4a6d;                  /* fountain-pen blue */
   --period:#b0473f; --period-soft:#f1dfdc;
   --fertile:#3f7a62; --fertile-soft:#e0ece5;
@@ -139,6 +139,12 @@ h1{font-size:2.3rem}
 .key b{font-weight:700}
 .advice{font-size:1.45rem}
 textarea,.toast{font-size:1.3rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:10;max-width:calc(100% - 32px);box-sizing:border-box;text-align:center;background:var(--fg);color:var(--bg);padding:8px 18px;border-radius:999px;font-family:var(--body);font-size:1rem;pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.toast:empty{display:none}
+input[type=date]{font-size:16px}
+#backupText{font-size:16px!important}
+.nudge{margin:0;color:var(--muted);font-size:.95rem;text-align:center}
+.nudge button{background:none;border:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 body{font-size:16px}
 </style>
 
@@ -165,6 +171,7 @@ body{font-size:16px}
     <p class="advice" id="advice">Loading your cycles…</p>
     <div class="endrow" id="endRow" hidden></div>
     <div class="keys" id="keys"></div>
+    <p class="nudge" id="backupNudge" hidden></p>
   </section>
 
   <section class="card" aria-label="Calendar">
@@ -224,15 +231,15 @@ body{font-size:16px}
 
   <section class="card" aria-label="Backup">
     <h2>Backup</h2>
-    <p class="hint">Your entries live only on this phone. Copy a backup now and then and keep it in Notes, so you can restore it if you change phones or clear Safari.</p>
+    <p class="hint">Your entries live only on this phone. Save a backup every couple of weeks: it opens your share sheet, so you can send it to Notes or copy it. To restore, paste a backup into the box and tap Restore.</p>
     <textarea id="backupText" placeholder="Your backup text appears here, or paste one to restore" style="font-family:var(--mono);font-size:.75rem;line-height:1.4;background-image:none;min-height:70px"></textarea>
-    <div class="actions"><button class="btn" id="exportBtn">Copy backup</button><button class="btn ghost" id="importBtn">Restore</button></div>
+    <div class="actions"><button class="btn" id="exportBtn">Save backup</button><button class="btn ghost" id="importBtn">Restore</button></div>
   </section>
 
   <section class="card guide" aria-label="How it works">
     <h2>How the estimates work</h2>
     <p>Ovulation usually happens 12 to 14 days before the next period. Until there are a few cycles logged, the app predicts from your average cycle length. Once you log a positive LH strip, it switches to that: ovulation is likely 24 to 36 hours after the first positive.</p>
-    <p>Fertile window: the 5 days before ovulation plus ovulation day. Aim for intercourse every 1 to 2 days through it, especially the day of the positive LH and the day after.</p>
+    <p>Fertile window: the 5 days before ovulation, ovulation day, and the day after as a buffer. Aim for intercourse every 1 to 2 days through it, especially the day of the positive LH and the day after.</p>
     <p>LH strips: test once daily in the afternoon from the suggested start day, twice daily once the line starts darkening, until you get a positive.</p>
     <p>See your GP if a cycle passes day 45 with no period and negative tests, or if cycles stay longer than 35 days.</p>
   </section>
@@ -255,7 +262,7 @@ const add=(s,n)=>ds(new Date(pd(s).getTime()+n*MS));
 const diff=(a,b)=>Math.round((pd(b)-pd(a))/MS);
 const nice=s=>{const d=pd(s);return d.getUTCDate()+" "+MON[d.getUTCMonth()].slice(0,3)};
 const localToday=()=>{const n=new Date();return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0")};
-const TODAY=localToday();
+let TODAY=localToday();
 
 let cycles=[], logs={}, db=null, calMonth=TODAY.slice(0,7), form={};
 const $=id=>document.getElementById(id);
@@ -263,7 +270,8 @@ $("todayLabel").textContent=nice(TODAY)+" "+TODAY.slice(0,4);
 
 function model(){
   const cs=[...cycles].sort((a,b)=>a.start<b.start?-1:1).filter(c=>c.start<=TODAY);
-  const lens=[];for(let i=0;i<cs.length-1;i++)lens.push(diff(cs[i].start,cs[i+1].start));
+  const allLens=[];for(let i=0;i<cs.length-1;i++)allLens.push(diff(cs[i].start,cs[i+1].start));
+  const lens=allLens.filter(n=>n>=15&&n<60),excl=allLens.length-lens.length;
   if(!cs.length)return null;
   const cur=cs[cs.length-1];
   const avg=lens.length?Math.round(lens.reduce((a,b)=>a+b,0)/lens.length):28;
@@ -273,11 +281,11 @@ function model(){
   const lhPos=Object.keys(logs).filter(d=>d>=cur.start&&logs[d].lh==="positive").sort()[0]||null;
   const ovu=lhPos?add(lhPos,1):add(predNext,-14);
   const fStart=add(ovu,-5), fEnd=add(ovu,1);
-  let lhDay=Math.max(10,shortest-17); if(lens.length<3)lhDay=Math.min(13,lhDay);
+  let lhDay=Math.max(6,shortest-17); if(lens.length<3)lhDay=Math.min(13,lhDay);
   const lhStart=add(cur.start,lhDay-1);
   const testDate=lhPos?add(lhPos,14):predNext;
   const posTest=Object.keys(logs).some(d=>d>=cur.start&&logs[d].test==="positive");
-  return {cs,lens,cur,avg,cd,predNext,lhPos,ovu,fStart,fEnd,lhStart,lhDay,testDate,posTest};
+  return {cs,lens,excl,cur,avg,cd,predNext,lhPos,ovu,fStart,fEnd,lhStart,lhDay,testDate,posTest};
 }
 
 function sortedCycles(){return [...cycles].sort((a,b)=>a.start<b.start?-1:1)}
@@ -290,7 +298,7 @@ function periodDays(){ // marked start-to-end ranges; otherwise logged bleeding,
   cycles.forEach(c=>{
     set.add(c.start);
     if(c.end){for(let d=c.start;d<=c.end;d=add(d,1))set.add(d);return}
-    if(cur&&c.id===cur.id&&diff(c.start,TODAY)<8){for(let d=c.start;d<=TODAY;d=add(d,1))set.add(d);return} // still going until marked ended
+    if(cur&&c.id===cur.id&&diff(c.start,TODAY)<8){for(let d=c.start;d<=TODAY;d=add(d,1)){if(d!==c.start&&logs[d]&&logs[d].bleeding==="none")break;set.add(d)}return} // still going until marked ended
     const any=[0,1,2,3].some(i=>logs[add(c.start,i)]&&logs[add(c.start,i)].bleeding);
     if(!any)for(let i=1;i<pl;i++){const d=add(c.start,i);if(d<=TODAY)set.add(d)}
   });
@@ -322,13 +330,13 @@ function renderToday(){
   let phase,color,soft,advice;
   const late=m.cd>m.avg+7;
   if(m.posTest){phase="Positive test";color="var(--fertile)";soft="var(--fertile-soft)";advice="A positive pregnancy test is logged this cycle. Contact your huisarts soon so your care can start early."}
-  else if(m.cur.end?TODAY<=m.cur.end:m.cd<=Math.max(5,avgPeriodLen())&&!(m.cd>8)){phase="Period";color="var(--period)";soft="var(--period-soft)";advice="Period days. Nothing to track yet beyond bleeding. LH strips start on "+nice(m.lhStart)+" (day "+m.lhDay+")."}
+  else if(m.cur.end?TODAY<=m.cur.end:(m.cd<=8&&periodDays().has(TODAY))){phase="Period";color="var(--period)";soft="var(--period-soft)";advice="Period days. Nothing to track yet beyond bleeding. LH strips start on "+nice(m.lhStart)+" (day "+m.lhDay+")."}
   else if(TODAY<m.fStart&&TODAY<m.lhStart){phase="Follicular";color="var(--accent)";soft="var(--bg)";advice="Building up to ovulation. Start LH strips on "+nice(m.lhStart)+" and begin intercourse every 1 to 2 days from then."}
   else if(TODAY<=m.fEnd&&!(m.lhPos&&TODAY>add(m.lhPos,2))){phase=m.lhPos?"Peak fertility":"Fertile window";color="var(--fertile)";soft="var(--fertile-soft)";
-    advice=m.lhPos?"LH positive on "+nice(m.lhPos)+". Today and tomorrow are your most fertile days, so aim for intercourse on both.":"Test LH daily in the afternoon and aim for intercourse every 1 to 2 days. Watch for egg-white mucus."}
+    advice=m.lhPos?(TODAY===m.lhPos?"LH positive today. Today and tomorrow are your most fertile days, so aim for intercourse on both.":TODAY===add(m.lhPos,1)?"LH positive yesterday. Today is your most fertile day, so aim for intercourse today.":TODAY===add(m.lhPos,2)?"Last day of your fertile window. One more try today helps, then the two-week wait begins.":"LH positive on "+nice(m.lhPos)+". Aim for intercourse that day and the next."):"Test LH daily in the afternoon and aim for intercourse every 1 to 2 days. Watch for egg-white mucus."}
   else if(TODAY<m.lhStart||(!m.lhPos&&TODAY<m.predNext&&TODAY>m.fEnd&&m.cd<m.avg-10)){phase="Keep testing";color="var(--lh)";soft="var(--lh-soft)";advice="No positive LH strip yet. Keep testing daily until you get one, and keep up intercourse every 1 to 2 days."}
   else if(TODAY<m.testDate){phase="Two-week wait";color="var(--lh)";soft="var(--lh-soft)";advice="Likely past ovulation. Earliest reliable pregnancy test: "+nice(m.testDate)+", using first-morning urine."}
-  else if(late){phase="Late";color="var(--period)";soft="var(--period-soft)";advice="Your period is "+(m.cd-m.avg)+" days later than your average. Take a pregnancy test. If it is negative, retest in 3 to 5 days, and see your huisarts if you reach day 45 with no period."}
+  else if(late){phase="Late";color="var(--period)";soft="var(--period-soft)";advice="Your period is "+diff(m.predNext,TODAY)+" days later than expected. Take a pregnancy test. "+(m.cd>=45?"If it is negative, book an appointment with your huisarts, as you are past day 45.":"If it is negative, retest in 3 to 5 days, and see your huisarts if you reach day 45 with no period.")}
   else{phase="Test day";color="var(--period)";soft="var(--period-soft)";advice="Period due around now. If it has not started, take a pregnancy test with first-morning urine."}
   const chip=$("phaseChip");chip.textContent=phase;chip.style.background=soft;chip.style.color=color;
   $("advice").textContent=advice;
@@ -379,7 +387,7 @@ function renderCal(){
     const cls=["cell"];const l=logs[d]||{};
     if(d.slice(0,7)!==calMonth)cls.push("out");
     if(pds.has(d))cls.push("period");else if(predP.has(d))cls.push("pred-period");
-    else if(m&&d>=m.fStart&&d<=m.fEnd){cls.push("fertile");if(d===m.fStart||(firstDow+i)%7===0&&false)cls.push("fstart");if(d===m.fEnd)cls.push("fend");const dw=(pd(d).getUTCDay()+6)%7;if(dw===0)cls.push("fstart");if(dw===6)cls.push("fend")}
+    else if(m&&d>=m.fStart&&d<=m.fEnd){cls.push("fertile");if(d===m.fStart)cls.push("fstart");if(d===m.fEnd)cls.push("fend");const dw=(pd(d).getUTCDay()+6)%7;if(dw===0)cls.push("fstart");if(dw===6)cls.push("fend")}
     if(m&&d===m.ovu)cls.push("ovu");
     if(d===TODAY)cls.push("today");
     if(d===form.date)cls.push("sel");
@@ -388,7 +396,8 @@ function renderCal(){
     if(l.mucus==="eggwhite")dots+='<span class="dot mucus"></span>';
     if(l.sex==="yes")dots+='<span class="dot sex"></span>';
     if(l.test&&l.test!=="none")dots+='<span class="dot test"></span>';
-    h+=`<button class="${cls.join(" ")}" data-d="${d}" aria-label="${nice(d)}"><span class="n num">${pd(d).getUTCDate()}</span>${dots?`<span class="dots">${dots}</span>`:""}</button>`;
+    const st=[];if(cls.includes("period"))st.push("period");else if(cls.includes("pred-period"))st.push("predicted period");if(cls.includes("fertile"))st.push("fertile window");if(cls.includes("ovu"))st.push("estimated ovulation");if(d===TODAY)st.push("today");if(l.lh==="positive")st.push("LH positive");if(l.mucus==="eggwhite")st.push("egg-white mucus");if(l.sex==="yes")st.push("intercourse");if(l.test&&l.test!=="none")st.push("pregnancy test "+l.test);
+    h+=`<button class="${cls.join(" ")}" data-d="${d}" aria-label="${nice(d)}${st.length?", "+st.join(", "):""}"><span class="n num">${pd(d).getUTCDate()}</span>${dots?`<span class="dots">${dots}</span>`:""}</button>`;
   }
   $("calGrid").innerHTML=h;
 }
@@ -399,14 +408,15 @@ function renderHist(){
     const next=cs[i+1];const len=next?diff(c.start,next.start):null;
     const lh=Object.keys(logs).filter(d=>d>=c.start&&(!next||d<next.start)&&logs[d].lh==="positive").sort()[0];
     let ov="–";if(lh)ov=nice(add(lh,1))+" (LH)";else if(next)ov=nice(add(next.start,-14))+" to "+nice(add(next.start,-12))+" (CD"+(len-13)+" to "+(len-11)+")";
-    return `<tr><td class="num">${i+1}</td><td class="num">${nice(c.start)} ${c.start.slice(0,4)}</td><td class="num">${c.end?(diff(c.start,c.end)+1)+" days":"–"}</td><td class="num">${len?len+" days":"Ongoing (day "+(diff(c.start,TODAY)+1)+")"}</td><td class="num">${ov}</td><td class="num">${lh?nice(lh):"Not tested"}</td><td>${esc(c.notes||"")}</td><td><button class="linkbtn" data-del="${c.id}">Remove</button></td></tr>`}).join("");
+    return `<tr><td class="num">${i+1}</td><td class="num">${nice(c.start)} ${c.start.slice(0,4)}</td><td class="num">${c.end?(diff(c.start,c.end)+1)+" days":"–"}</td><td class="num">${len?len+" days"+(len<15||len>=60?" (left out of average)":""):"Ongoing (day "+(diff(c.start,TODAY)+1)+")"}</td><td class="num">${ov}</td><td class="num">${lh?nice(lh):"Not tested"}</td><td>${esc(c.notes||"")}</td><td><button class="linkbtn" data-del="${c.id}">Remove</button></td></tr>`}).join("");
   $("histBody").innerHTML=rows||`<tr><td colspan="8" class="muted">No cycles yet. Log a period Day 1 above.</td></tr>`;
   const m=model();
   $("avgLine").textContent=m&&m.lens.length?`Average cycle: ${m.avg} days across ${m.lens.length} completed cycle${m.lens.length>1?"s":""}. Your pattern becomes reliable after about 3.`:"Average cycle length appears once one cycle is complete.";
+  if(m&&m.excl)$("avgLine").textContent+=" Cycles under 15 or over 60 days are left out, because they usually mean a period was missed or logged twice.";
 }
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-function renderAll(){renderToday();renderEndRow();renderCal();renderHist()}
+function renderAll(){renderToday();renderEndRow();renderCal();renderHist();if(typeof renderBackupNudge==="function")renderBackupNudge()}
 
 /* Form */
 function buildChips(){
@@ -463,6 +473,13 @@ $("histBody").addEventListener("click",async e=>{
 });
 
 buildChips();loadForm(TODAY);renderAll();
+function refreshDay(){const t=localToday();if(t===TODAY)return;const old=TODAY;TODAY=t;
+  $("todayLabel").textContent=nice(TODAY)+" "+TODAY.slice(0,4);
+  if(calMonth===old.slice(0,7))calMonth=TODAY.slice(0,7);
+  if($("pastDate"))$("pastDate").max=TODAY;
+  if(form.date===old)loadForm(TODAY);renderAll()}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshDay()});
+window.addEventListener("pageshow",refreshDay);window.addEventListener("focus",refreshDay);setInterval(refreshDay,60000);
 
 (function(){
   const KEY="cycleCompass.v1";
@@ -477,7 +494,12 @@ buildChips();loadForm(TODAY);renderAll();
       delete:async()=>{delete store[c][id];persist();emit(c)}}},
     onSnapshot(fn){L[c].push(fn);fn(snap(c));return()=>{}}}},
     exportJSON:()=>JSON.stringify(store),
-    importJSON:t=>{const p=JSON.parse(t);if(!p||typeof p!=="object"||!p.cycles||!p.logs)throw new Error("bad");store={cycles:p.cycles,logs:p.logs};persist();emit("cycles");emit("logs")}};
+    importJSON:t=>{const p=JSON.parse(t),re=/^\d{4}-\d{2}-\d{2}$/,okd=x=>typeof x==="string"&&re.test(x)&&!isNaN(pd(x));
+      if(!p||typeof p!=="object"||!p.cycles||typeof p.cycles!=="object"||!p.logs||typeof p.logs!=="object")throw new Error("bad");
+      const cyc={},lg={};
+      for(const [k,v] of Object.entries(p.cycles)){if(!okd(k)||!v||!okd(v.start))throw new Error("bad");const c={start:v.start,notes:typeof v.notes==="string"?v.notes:""};if(okd(v.end)&&v.end>=v.start)c.end=v.end;cyc[k]=c}
+      for(const [k,v] of Object.entries(p.logs)){if(!okd(k)||!v||typeof v!=="object")throw new Error("bad");const l={date:k};["bleeding","mucus","lh","sex","test","notes"].forEach(f=>{if(typeof v[f]==="string")l[f]=v[f]});lg[k]=l}
+      store={cycles:cyc,logs:lg};persist();emit("cycles");emit("logs")}};
   if(!ok){const n=$("notice");n.hidden=false;n.textContent="This browser is blocking storage, so entries will not be kept. Turn off private browsing."}
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
   db.collection("cycles").onSnapshot(s=>{cycles=s.docs.map(x=>({id:x.id,...x.data()}));syncForm();renderAll()});
@@ -485,16 +507,26 @@ buildChips();loadForm(TODAY);renderAll();
   if(!Object.keys(store.cycles).length){$("advice").textContent="Add the first day of your last period under Cycle history to begin."}
 })();
 
+$("pastDate").max=TODAY;
 $("addPastBtn").onclick=async()=>{const d=$("pastDate").value;if(!d){toast("Choose a date first");return}
+  if(d>TODAY){toast("That date is in the future");return}
   if(cycles.some(c=>c.start===d)){toast("That date is already a Day 1");return}
   await db.collection("cycles").doc(d).set({start:d,notes:""});$("pastDate").value="";toast("Added "+nice(d))};
-$("exportBtn").onclick=async()=>{const t=db.exportJSON();$("backupText").value=t;
-  try{await navigator.clipboard.writeText(t);toast("Backup copied. Paste it into Notes to keep it safe.")}catch(e){$("backupText").select();toast("Backup shown below. Select and copy it.")}};
+async function doExport(){const t=db.exportJSON();$("backupText").value=t;
+  const mark=()=>{try{localStorage.setItem("cycleCompass.lastBackup",TODAY)}catch(e){}renderBackupNudge()};
+  if(navigator.share){try{await navigator.share({title:"Cycle Compass backup "+TODAY,text:t});mark();toast("Backup saved");return}catch(e){if(e&&e.name==="AbortError")return}}
+  try{await navigator.clipboard.writeText(t);mark();toast("Backup copied. Paste it into Notes.")}catch(e){$("backupText").select();toast("Select the text below and copy it")}}
+$("exportBtn").onclick=doExport;
+function renderBackupNudge(){const el=$("backupNudge");let last=null;try{last=localStorage.getItem("cycleCompass.lastBackup")}catch(e){}
+  const age=last?diff(last,TODAY):null;
+  if(Object.keys(logs).length+cycles.length<3||(age!==null&&age<14)){el.hidden=true;return}
+  el.innerHTML=(age===null?"No backup yet.":"Last backup "+age+" days ago.")+' <button type="button" id="nudgeBtn">Back up now</button>';el.hidden=false}
+$("backupNudge").addEventListener("click",e=>{if(e.target.id==="nudgeBtn")doExport()});
 let restoreArmed=false;
 $("importBtn").onclick=()=>{const t=$("backupText").value.trim();if(!t){toast("Paste a backup into the box first");return}
   if(!restoreArmed){restoreArmed=true;$("importBtn").textContent="Tap again to replace all data";setTimeout(()=>{restoreArmed=false;$("importBtn").textContent="Restore"},4000);return}
   restoreArmed=false;$("importBtn").textContent="Restore";
-  try{db.importJSON(t);toast("Backup restored")}catch(e){toast("That text is not a Cycle Compass backup")}};
+  try{db.importJSON(t);loadForm(form.date);toast("Backup restored")}catch(e){toast("That text is not a Cycle Compass backup")}};
 })();
 </script>
 

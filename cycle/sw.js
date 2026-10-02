@@ -1,5 +1,5 @@
 // Cycle Compass. Bump this number whenever you upload a new version of the app
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'cycle-compass-' + VERSION;
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
@@ -16,9 +16,19 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   // The app page: network first so updates arrive, saved copy when offline
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then(res => {
-      const copy = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); return res;
-    }).catch(() => caches.match('./index.html')));
+    // Use the network if it answers within 3 seconds, otherwise open the saved copy.
+    // Only good responses are saved, so an error page never becomes the offline copy.
+    const net = fetch(req).then(res => {
+      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); }
+      return res;
+    });
+    e.respondWith(new Promise(resolve => {
+      let done = false;
+      const finish = r => { if (!done && r) { done = true; resolve(r); } };
+      const timer = setTimeout(() => caches.match('./index.html').then(finish), 3000);
+      net.then(res => { clearTimeout(timer); finish(res); })
+         .catch(() => caches.match('./index.html').then(hit => finish(hit || Response.error())));
+    }));
     return;
   }
   // Icons and fonts: saved copy first, then network
