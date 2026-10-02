@@ -67,6 +67,11 @@ header .date{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
 .key b{font-weight:400;font-size:1.15rem}
 .key span.sub{font-size:.82rem;color:var(--muted);font-style:italic}
 
+.endrow{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;justify-content:center}
+.endrow .q{color:var(--muted);flex-basis:100%}
+.endrow button{background:none;border:none;padding:4px 0;font:inherit;font-size:1.05rem;color:var(--period);border-bottom:1.5px solid var(--period);cursor:pointer}
+.endrow button.undo{color:var(--muted);border-bottom-color:var(--line);font-size:.95rem}
+
 /* Calendar */
 .card{display:grid;gap:16px}
 .cal-head{display:flex;justify-content:space-between;align-items:baseline}
@@ -158,6 +163,7 @@ body{font-size:16px}
       </div>
     </div>
     <p class="advice" id="advice">Loading your cycles…</p>
+    <div class="endrow" id="endRow" hidden></div>
     <div class="keys" id="keys"></div>
   </section>
 
@@ -187,6 +193,10 @@ body{font-size:16px}
       <input type="checkbox" id="newCycle">
       <label for="newCycle">This is Day 1 of a new period (first day of proper bleeding, not spotting)</label>
     </div>
+    <div class="check" id="periodEndRow" hidden>
+      <input type="checkbox" id="periodEnd">
+      <label for="periodEnd">This was the last day of my period</label>
+    </div>
     <div class="field"><span class="lbl">Cervical mucus</span><div class="chips" data-k="mucus" data-c="f"></div>
       <p class="hint">Egg white (clear, stretchy) is the most fertile sign.</p></div>
     <div class="field"><span class="lbl">LH strip</span><div class="chips" data-k="lh" data-c="l"></div>
@@ -204,7 +214,7 @@ body{font-size:16px}
   <section class="card" aria-label="Cycle history">
     <h2>Cycle history</h2>
     <div class="tablewrap"><table>
-      <thead><tr><th>#</th><th>Day 1</th><th>Length</th><th>Est. ovulation</th><th>LH positive</th><th>Notes</th><th></th></tr></thead>
+      <thead><tr><th>#</th><th>Day 1</th><th>Period</th><th>Cycle</th><th>Est. ovulation</th><th>LH positive</th><th>Notes</th><th></th></tr></thead>
       <tbody id="histBody"></tbody>
     </table></div>
     <p class="hint" id="avgLine"></p>
@@ -270,11 +280,39 @@ function model(){
   return {cs,lens,cur,avg,cd,predNext,lhPos,ovu,fStart,fEnd,lhStart,lhDay,testDate,posTest};
 }
 
-function periodDays(){ // actual bleeding days from logs plus assumed days 1-4 of each logged cycle without logs
-  const set=new Set();
+function sortedCycles(){return [...cycles].sort((a,b)=>a.start<b.start?-1:1)}
+function avgPeriodLen(){const ls=cycles.filter(c=>c.end).map(c=>diff(c.start,c.end)+1);return ls.length?Math.round(ls.reduce((a,b)=>a+b,0)/ls.length):4}
+function currentCycle(){const cs=sortedCycles().filter(c=>c.start<=TODAY);return cs[cs.length-1]||null}
+function cycleOf(d){const cs=sortedCycles().filter(c=>c.start<=d);return cs[cs.length-1]||null}
+function periodDays(){ // marked start-to-end ranges; otherwise logged bleeding, or an assumed length
+  const set=new Set(),pl=avgPeriodLen(),cur=currentCycle();
   Object.entries(logs).forEach(([d,l])=>{if(["light","medium","heavy"].includes(l.bleeding))set.add(d)});
-  cycles.forEach(c=>{const any=[0,1,2,3].some(i=>logs[add(c.start,i)]&&logs[add(c.start,i)].bleeding);set.add(c.start);if(!any)for(let i=1;i<4;i++){const d=add(c.start,i);if(d<=TODAY)set.add(d)}});
+  cycles.forEach(c=>{
+    set.add(c.start);
+    if(c.end){for(let d=c.start;d<=c.end;d=add(d,1))set.add(d);return}
+    if(cur&&c.id===cur.id&&diff(c.start,TODAY)<8){for(let d=c.start;d<=TODAY;d=add(d,1))set.add(d);return} // still going until marked ended
+    const any=[0,1,2,3].some(i=>logs[add(c.start,i)]&&logs[add(c.start,i)].bleeding);
+    if(!any)for(let i=1;i<pl;i++){const d=add(c.start,i);if(d<=TODAY)set.add(d)}
+  });
   return set;
+}
+async function setPeriodEnd(c,end){
+  const body={start:c.start,notes:c.notes||""};if(end)body.end=end;
+  await db.collection("cycles").doc(c.id).set(body);
+}
+function renderEndRow(){
+  const box=$("endRow"),c=currentCycle();
+  if(!c||!db){box.hidden=true;return}
+  const cd=diff(c.start,TODAY)+1;
+  if(c.end){
+    if(diff(c.end,TODAY)>3){box.hidden=true;return}
+    const n=diff(c.start,c.end)+1;
+    box.innerHTML=`<span class="q">Period lasted ${n} day${n>1?"s":""}, ${nice(c.start)} to ${nice(c.end)}.</span><button type="button" class="undo" data-end="">Undo</button>`;
+  }else{
+    if(cd>10){box.hidden=true;return}
+    box.innerHTML=`<span class="q">Has your period ended?</span><button type="button" data-end="${TODAY}">Ended today</button>`+(cd>1?`<button type="button" data-end="${add(TODAY,-1)}">Ended yesterday</button>`:"");
+  }
+  box.hidden=false;
 }
 
 function renderToday(){
@@ -284,7 +322,7 @@ function renderToday(){
   let phase,color,soft,advice;
   const late=m.cd>m.avg+7;
   if(m.posTest){phase="Positive test";color="var(--fertile)";soft="var(--fertile-soft)";advice="A positive pregnancy test is logged this cycle. Contact your huisarts soon so your care can start early."}
-  else if(m.cd<=5){phase="Period";color="var(--period)";soft="var(--period-soft)";advice="Period days. Nothing to track yet beyond bleeding. LH strips start on "+nice(m.lhStart)+" (day "+m.lhDay+")."}
+  else if(m.cur.end?TODAY<=m.cur.end:m.cd<=Math.max(5,avgPeriodLen())&&!(m.cd>8)){phase="Period";color="var(--period)";soft="var(--period-soft)";advice="Period days. Nothing to track yet beyond bleeding. LH strips start on "+nice(m.lhStart)+" (day "+m.lhDay+")."}
   else if(TODAY<m.fStart&&TODAY<m.lhStart){phase="Follicular";color="var(--accent)";soft="var(--bg)";advice="Building up to ovulation. Start LH strips on "+nice(m.lhStart)+" and begin intercourse every 1 to 2 days from then."}
   else if(TODAY<=m.fEnd&&!(m.lhPos&&TODAY>add(m.lhPos,2))){phase=m.lhPos?"Peak fertility":"Fertile window";color="var(--fertile)";soft="var(--fertile-soft)";
     advice=m.lhPos?"LH positive on "+nice(m.lhPos)+". Today and tomorrow are your most fertile days, so aim for intercourse on both.":"Test LH daily in the afternoon and aim for intercourse every 1 to 2 days. Watch for egg-white mucus."}
@@ -315,7 +353,7 @@ function drawDial(cd,len,m){
   for(let i=0;i<total;i++){
     let color="var(--line)",w=6;
     if(m){const d=add(m.cur.start,i);
-      if(pds.has(d)||(i<4&&d>TODAY))color="var(--period)";
+      if(pds.has(d)||(!m.cur.end&&i<avgPeriodLen()&&d>TODAY))color="var(--period)";
       else if(d===m.ovu){color="var(--fertile)";w=11}
       else if(d>=m.fStart&&d<=m.fEnd)color="var(--fertile)";
       else if(d===m.lhStart)color="var(--lh)";
@@ -335,7 +373,7 @@ function renderCal(){
   const first=calMonth+"-01",firstDow=(pd(first).getUTCDay()+6)%7;
   const start=add(first,-firstDow);
   let h=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>`<div class="dow">${d}</div>`).join("");
-  const predP=new Set();if(m&&!m.posTest)for(let i=0;i<4;i++){const d=add(m.predNext,i);if(d>TODAY)predP.add(d)}
+  const predP=new Set();if(m&&!m.posTest)for(let i=0;i<avgPeriodLen();i++){const d=add(m.predNext,i);if(d>TODAY)predP.add(d)}
   for(let i=0;i<42;i++){
     const d=add(start,i);if(i>=35&&d.slice(0,7)!==calMonth)break;
     const cls=["cell"];const l=logs[d]||{};
@@ -360,15 +398,15 @@ function renderHist(){
   const rows=cs.map((c,i)=>{
     const next=cs[i+1];const len=next?diff(c.start,next.start):null;
     const lh=Object.keys(logs).filter(d=>d>=c.start&&(!next||d<next.start)&&logs[d].lh==="positive").sort()[0];
-    let ov="–";if(lh)ov=nice(add(lh,1))+" (LH)";else if(next)ov=nice(add(next.start,-16))+" to "+nice(add(next.start,-14))+" (CD"+(len-15)+" to "+(len-13)+")";
-    return `<tr><td class="num">${i+1}</td><td class="num">${nice(c.start)} ${c.start.slice(0,4)}</td><td class="num">${len?len+" days":"Ongoing (day "+(diff(c.start,TODAY)+1)+")"}</td><td class="num">${ov}</td><td class="num">${lh?nice(lh):"Not tested"}</td><td>${esc(c.notes||"")}</td><td><button class="linkbtn" data-del="${c.id}">Remove</button></td></tr>`}).join("");
-  $("histBody").innerHTML=rows||`<tr><td colspan="7" class="muted">No cycles yet. Log a period Day 1 above.</td></tr>`;
+    let ov="–";if(lh)ov=nice(add(lh,1))+" (LH)";else if(next)ov=nice(add(next.start,-14))+" to "+nice(add(next.start,-12))+" (CD"+(len-13)+" to "+(len-11)+")";
+    return `<tr><td class="num">${i+1}</td><td class="num">${nice(c.start)} ${c.start.slice(0,4)}</td><td class="num">${c.end?(diff(c.start,c.end)+1)+" days":"–"}</td><td class="num">${len?len+" days":"Ongoing (day "+(diff(c.start,TODAY)+1)+")"}</td><td class="num">${ov}</td><td class="num">${lh?nice(lh):"Not tested"}</td><td>${esc(c.notes||"")}</td><td><button class="linkbtn" data-del="${c.id}">Remove</button></td></tr>`}).join("");
+  $("histBody").innerHTML=rows||`<tr><td colspan="8" class="muted">No cycles yet. Log a period Day 1 above.</td></tr>`;
   const m=model();
   $("avgLine").textContent=m&&m.lens.length?`Average cycle: ${m.avg} days across ${m.lens.length} completed cycle${m.lens.length>1?"s":""}. Your pattern becomes reliable after about 3.`:"Average cycle length appears once one cycle is complete.";
 }
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-function renderAll(){renderToday();renderCal();renderHist()}
+function renderAll(){renderToday();renderEndRow();renderCal();renderHist()}
 
 /* Form */
 function buildChips(){
@@ -378,13 +416,18 @@ function buildChips(){
     box.addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;form[k]=form[k]===b.dataset.v?undefined:b.dataset.v;syncForm()});
   });
 }
-function loadForm(d){const l=logs[d]||{};form={date:d,bleeding:l.bleeding,mucus:l.mucus,lh:l.lh,sex:l.sex,test:l.test};$("logDate").value=d;$("logNotes").value=l.notes||"";$("newCycle").checked=cycles.some(c=>c.start===d);syncForm();renderCal()}
+function loadForm(d){const l=logs[d]||{};form={date:d,bleeding:l.bleeding,mucus:l.mucus,lh:l.lh,sex:l.sex,test:l.test};$("logDate").value=d;$("logNotes").value=l.notes||"";$("newCycle").checked=cycles.some(c=>c.start===d);const oc=cycleOf(d);$("periodEnd").checked=!!(oc&&oc.end===d);syncForm();renderCal()}
 function syncForm(){
   document.querySelectorAll(".chips").forEach(box=>{const k=box.dataset.k;box.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",String(form[k]===b.dataset.v)))});
   const bleed=["light","medium","heavy"].includes(form.bleeding);
   const isStart=cycles.some(c=>c.start===form.date);
   $("newCycleRow").hidden=!(bleed||isStart);
+  const oc=cycleOf(form.date);
+  $("periodEndRow").hidden=!(oc&&diff(oc.start,form.date)<14&&!$("newCycle").checked);
 }
+$("newCycle").addEventListener("change",syncForm);
+$("endRow").addEventListener("click",async e=>{const b=e.target.closest("button[data-end]");if(!b)return;const c=currentCycle();if(!c)return;
+  try{await setPeriodEnd(c,b.dataset.end||null);toast(b.dataset.end?"Period marked as ended "+nice(b.dataset.end):"Period end removed");if(cycleOf(form.date))loadForm(form.date)}catch(err){toast("Could not save")}});
 function toast(t){$("toast").textContent=t;clearTimeout(toast.t);toast.t=setTimeout(()=>$("toast").textContent="",3000)}
 
 $("logDate").addEventListener("change",e=>{if(e.target.value){loadForm(e.target.value);calMonth=e.target.value.slice(0,7);renderCal()}});
@@ -401,6 +444,11 @@ $("saveBtn").onclick=async()=>{
     const existing=cycles.find(c=>c.start===d);
     if($("newCycle").checked&&!$("newCycleRow").hidden&&!existing){await db.collection("cycles").doc(d).set({start:d,notes:""})}
     else if(!$("newCycle").checked&&existing){await db.collection("cycles").doc(existing.id).delete()}
+    const oc=cycleOf(d);
+    if(oc&&!$("periodEndRow").hidden){
+      if($("periodEnd").checked&&oc.end!==d)await setPeriodEnd(oc,d);
+      else if(!$("periodEnd").checked&&oc.end===d)await setPeriodEnd(oc,null);
+    }
     toast("Saved "+nice(d));
   }catch(err){toast("Could not save: "+(err&&err.message||"try again"))}
 };

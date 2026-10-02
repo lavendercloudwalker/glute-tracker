@@ -1,5 +1,5 @@
 // Cycle Compass. Bump this number whenever you upload a new version of the app
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'cycle-compass-' + VERSION;
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
