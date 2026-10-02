@@ -15,8 +15,6 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
-  // Leave the Cycle Compass app in /cycle/ to its own service worker
-  if (new URL(req.url).pathname.includes('/cycle/')) return;
   // Food database lookups always go to the network (never cached)
   if (new URL(req.url).hostname.endsWith('openfoodfacts.org')) return;
   // The app page: try the network first so updates arrive, fall back to the saved copy offline

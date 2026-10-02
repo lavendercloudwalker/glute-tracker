@@ -159,14 +159,14 @@ textarea.note{min-height:70px;resize:vertical;margin-top:8px}
 .hint{margin-top:3px;color:#fff}
 .uselast{border:0;background:none;color:var(--yellow);font-weight:700;padding:5px 0 0;font-size:14.5px;text-shadow:0 0 8px rgba(255,226,89,.5)}
 .sets{margin-top:10px}
-.setrow{display:grid;grid-template-columns:30px 1fr 1fr 50px;gap:8px;align-items:center;margin-top:9px}
+.setrow{display:grid;grid-template-columns:30px 1fr 1fr 50px;gap:8px;align-items:start;margin-top:9px}
 .setrow.one{grid-template-columns:30px 1fr 50px}
-.setrow .sn{font-family:var(--retro);font-size:22px;text-align:center;color:var(--cyan);text-shadow:var(--glow-cyan)}
+.setrow .sn{font-family:var(--retro);font-size:22px;text-align:center;color:var(--cyan);text-shadow:var(--glow-cyan);min-height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .setrow.optrow .sn{color:var(--yellow);text-shadow:0 0 8px rgba(255,226,89,.7)}
 .setrow input{width:100%;border:1.5px solid rgba(45,226,230,.4);background:rgba(10,3,26,.8);border-radius:12px;padding:8px 4px;font-size:22px;font-weight:700;text-align:center;min-height:50px;color:#fff}
 .setrow input::placeholder{color:var(--dim);font-weight:500}
-.unit{display:block;text-align:center;font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-top:2px}
-.tick{width:50px;height:50px;border-radius:50%;border:2px solid rgba(255,110,199,.55);background:rgba(18,5,43,.6);display:grid;place-items:center;font-size:21px;color:transparent;margin-bottom:17px}
+.unit{display:block;text-align:center;font-size:11.5px;line-height:1.25;letter-spacing:.6px;text-transform:uppercase;color:var(--dim);margin-top:2px}
+.tick{width:50px;height:50px;border-radius:50%;border:2px solid rgba(255,110,199,.55);background:rgba(18,5,43,.6);display:grid;place-items:center;font-size:21px;color:transparent;margin-bottom:0}
 .tick.on{background:var(--cyan);border-color:var(--cyan);color:#12052B;font-weight:800;box-shadow:0 0 14px var(--cyan),0 0 28px rgba(45,226,230,.5);animation:zap .3s ease}
 @keyframes zap{0%{transform:scale(.8);filter:brightness(2)}100%{transform:scale(1);filter:none}}
 .optlabel{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--yellow);margin:12px 0 -2px 38px}
@@ -402,6 +402,13 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .mbar.carb.inrange .fill{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
 .mbar.carb.over .fill{background:var(--red);box-shadow:0 0 8px var(--red)}
 .mbar.carb .track2{overflow:visible}
+
+/* Last-time comparison */
+.lastnote{margin-top:4px;font-size:13.5px;color:#BFEFF2}
+.lastnote b{color:var(--cyan)}
+.was{display:block;text-align:center;font-size:12px;line-height:1.2;color:var(--dim);margin-top:1px}
+.was.up{color:var(--mint);text-shadow:0 0 6px rgba(61,255,176,.5)}
+.was.up::before{content:"▲ "}
 </style>
 </head>
 <body>
@@ -505,7 +512,7 @@ const PLAN={
    {id:'abC',name:"Hip abduction",variants:["Seated machine","Cable","Side-lying"],sets:2,reps:"15–25",kind:'iso',rir:"0–1",rest:"60–90 s",restS:75,unit:'kg',cue:"Controlled range. Pause briefly if it helps. Hard but technically clean."},
    {id:'kb',name:"Cable kickback",optional:1,skipF:1,sets:2,reps:"12–20",per:"per leg",kind:'iso',rir:"0–2",rest:"60–90 s",restS:75,unit:'kg',cue:"Pelvis square. Move through the hip, not the lumbar spine."},
    {id:'pull2',name:"Pull micro-dose",ladder:'pull',variants:["Assisted pull-up","Lat pulldown"],sets:2,reps:"6–10",kind:'fixed',rir:"2",rest:"2 min",restS:120,unit:'kg',kgLabel:'kg / assist',assist:1,cue:"Same pattern as Tuesday. Stop fresh. Reduce assistance only when Tuesday is also progressing."},
-   {id:'cc',name:"Core or carry",optional:1,variants:["Side plank","Pallof press","Suitcase carry"],sets:2,reps:"20–40 s or 20–40 m",kind:'core',rest:"60 s",restS:60,unit:'val',valLabel:'s / m / reps',cue:"No symptoms. Optional if time and recovery are good."}
+   {id:'cc',name:"Core or carry",optional:1,variants:["Side plank","Pallof press","Suitcase carry"],sets:2,reps:"20–40 s or 20–40 m",per:"per side",kind:'core',rest:"60 s",restS:60,unit:'val',valLabel:'s / m / reps',cue:"No symptoms. Optional if time and recovery are good."}
   ]},
  sat:{type:'rest',title:"Relaxed walk",sub:"30–60 min relaxed walk. Optional restorative yoga. Finish feeling better, not tired.",walkMain:"30–60 min",walkSteps:"about 3,000–6,000",yoga:'opt'},
  sun:{type:'rest',title:"Rest day",sub:"Full rest, or a family walk with some gentle flexibility. Choose based on how you feel.",walkMain:"optional",yoga:'opt'}
@@ -1211,12 +1218,13 @@ function renderChecklist(w,dk,o,key,title,items,open,note){
  </details>`;
 }
 function unitCols(ex){
+ const per=ex.per?' '+ex.per:'';
  switch(ex.unit){
-  case 'kg':return[['kg',ex.kgLabel||'kg','decimal'],['reps','reps','numeric']];
-  case 'carry':return[['kg','kg','decimal'],['m','metres','numeric']];
-  case 'bw':return[['reps','reps','numeric']];
-  case 'sec':return[['sec','seconds','numeric']];
-  case 'val':return[['v',ex.valLabel,'decimal']];
+  case 'kg':return[['kg',ex.kgLabel||'kg','decimal'],['reps','reps'+per,'numeric']];
+  case 'carry':return[['kg','kg','decimal'],['m','metres'+per,'numeric']];
+  case 'bw':return[['reps','reps'+per,'numeric']];
+  case 'sec':return[['sec','seconds'+per,'numeric']];
+  case 'val':return[['v',ex.valLabel+per,'decimal']];
   case 'skill':return[['min','minutes','decimal'],['sec','best hold s','numeric']];
  }
 }
@@ -1230,6 +1238,18 @@ function prevSummary(ex,e){
   if(ex.unit==='skill')return (s.min||'NR')+' min, best hold '+(s.sec||'NR')+' s';
  }).join(', ');
 }
+function wasCls(ex,col,was,now){const a=num(was),b=num(now);if(a==null||b==null)return '';const better=(ex.assist&&col==='kg')?b<a:b>a;return better?' up':''}
+function wasTag(ex,col,was,now){if(was==null||String(was).trim()==='')return '';return `<span class="was${wasCls(ex,col,was,now)}" data-was="${esc(was)}">last ${esc(was)}</span>`}
+function prevFeel(prev){
+ const e=prev.e||{},o=getDay(prev.w,prev.d),c=o.checkin||{};const bits=[];
+ if(num(e.rir)!=null)bits.push('final RIR '+e.rir);
+ const L={green:'Green',amber:'Amber',red:'Red'}[c.light];if(L)bits.push(L+' day');
+ if(num(c.sleep)!=null)bits.push(c.sleep+' h sleep');
+ let out='';
+ if((e.note||'').trim())out+=`<div class="lastnote"><b>Your note:</b> ${esc(e.note.trim())}</div>`;
+ if(bits.length)out+=`<div class="lastnote">${esc(bits.join(', ').replace(/^./,m=>m.toUpperCase()))}.</div>`;
+ if((o.notes||'').trim())out+=`<div class="lastnote"><b>Session note:</b> ${esc(o.notes.trim())}</div>`;
+ return out}
 function hintFor(ex,w,prev){
  const p=phase(w),[lo,hi]=rng(ex.reps);
  if(!prev){if(ex.unit==='kg'&&!ex.assist)return 'First time logging this. Choose a load you could lift for about '+(hi+2)+' reps, so you finish each set with a couple in reserve.';return ''}
@@ -1271,13 +1291,13 @@ function renderEx(w,dk,o,ex,light){
  if(r.skip){h+=`<p class="cue">${esc(ex.cue)}</p></section>`;return h}
  const prev=prevFor(ex,w,dk,e);const hint=hintFor(ex,w,prev);
  if(prev||hint){
-  h+=`<div class="last">${prev?`<div><b>Last time</b> (week ${prev.w}, ${DAYNAMES[DAYS.indexOf(prev.d)].slice(0,3)}${prev.e.variant?', '+esc(prev.e.variant):''}): ${esc(prevSummary(ex,prev.e))}</div>`:''}${hint?`<div class="hint">${esc(hint)}</div>`:''}
+  h+=`<div class="last">${prev?`<div><b>Last time</b> (week ${prev.w}, ${DAYNAMES[DAYS.indexOf(prev.d)].slice(0,3)}${prev.e.variant?', '+esc(prev.e.variant):''}): ${esc(prevSummary(ex,prev.e))}</div>${prevFeel(prev)}`:''}${hint?`<div class="hint">${esc(hint)}</div>`:''}
   ${prev&&(ex.unit==='kg'||ex.unit==='carry')&&loggedSets(prev.e).some(s=>num(s.kg)!=null)?`<button class="uselast" data-a="uselast" data-ex="${ex.id}">Fill today's kg from last time</button>`:''}</div>`}
  h+=renderWarmup(ex,w,dk,e);
  const prevSets=prev?loggedSets(prev.e):[];
- const row=(i,isOpt)=>{const s=(e.sets&&e.sets[i])||{},ps=prevSets[i]||prevSets[prevSets.length-1]||{};
+ const row=(i,isOpt)=>{const s=(e.sets&&e.sets[i])||{},ps=prevSets[i]||prevSets[prevSets.length-1]||{},same=prev&&prev.e.sets?(prev.e.sets[i]||{}):{};
   return `<div class="setrow ${cols.length===1?'one':''} ${isOpt?'optrow':''}"><span class="sn">${ex.kind==='skill'?'':i+1}${PRC.flags[w+'-'+dk+'-'+ex.id+'-'+i]?'<b class="prb">PR</b>':''}</span>
-  ${cols.map(c=>`<div><input inputmode="${c[2]}" data-f="ex.${ex.id}.sets.${i}.${c[0]}" value="${esc(s[c[0]]||'')}" placeholder="${esc(ps[c[0]]||'')}" aria-label="Set ${i+1} ${c[1]}"><span class="unit">${esc(c[1])}</span></div>`).join('')}
+  ${cols.map(c=>`<div><input inputmode="${c[2]}" data-f="ex.${ex.id}.sets.${i}.${c[0]}" value="${esc(s[c[0]]||'')}" placeholder="${esc(ps[c[0]]||'')}" aria-label="Set ${i+1} ${c[1]}"><span class="unit">${esc(c[1])}</span>${wasTag(ex,c[0],same[c[0]],s[c[0]])}</div>`).join('')}
   <button class="tick ${s.done?'on':''}" data-a="tick" data-ex="${ex.id}" data-i="${i}" aria-label="Set ${i+1} done">✓</button></div>`};
  h+='<div class="sets">';for(let i=0;i<r.s;i++)h+=row(i,false);
  if(r.opt){h+=`<div class="optlabel">Extra set, only if today is Green</div>`;h+=row(r.s,true)}
@@ -1291,7 +1311,7 @@ function renderRest(w,dk,o,p){
  let h=`<div class="card"><h2>Walk</h2><p class="small">Before: 2–3 min easy marching, shoulder rolls and breathing. After: 3–5 min relaxed breathing or light mobility. Talk-in-full-sentences pace.</p>
   ${p.walkMain&&p.walkMain!=='optional'?`<p class="small" style="margin:6px 0 0"><b>Today's walk:</b> ${esc(p.walkMain)}, ${esc(p.walkSteps||'')} steps of your daily total.</p>`:''}
   <div class="grid2">${stepsField(o)}
-  <div class="fld"><label>Post-meal walks (count)</label><input inputmode="numeric" data-f="daily.meals" value="${esc(getPath(o,'daily.meals')||'')}"></div></div></div>`;
+  <div class="fld"><label>Post-meal walks (count)</label><input inputmode="numeric" data-f="daily.meals" value="${esc(getPath(o,'daily.meals')||'')}"><span class="unit" style="visibility:hidden" aria-hidden="true">.</span></div></div></div>`;
  if(p.yoga){h+=renderChecklist(w,dk,o,'yogaflow',p.yoga==='opt'?'Yoga flow (optional)':'Yoga flow, 20–30 min',YOGA,p.yoga===true);
   h+=`<div class="card"><div class="seg"><button class="${getPath(o,'daily.yoga')?'on':''}" data-a="toggle" data-f="daily.yoga">${getPath(o,'daily.yoga')?'Yoga done ✓':'Mark yoga done'}</button></div></div>`}
  return h;
@@ -1299,7 +1319,7 @@ function renderRest(w,dk,o,p){
 function renderDaily(w,dk,o,p){
  const lift=p.type==='lift';
  return `<div class="card"><h2>Daily log</h2>${lift?`<p class="small muted" style="margin:0">${esc(p.walk)}</p>`:''}
- <div class="grid2">${lift?stepsField(o)+`<div class="fld"><label>Post-meal walks (count)</label><input inputmode="numeric" data-f="daily.meals" value="${esc(getPath(o,'daily.meals')||'')}"></div>`:''}
+ <div class="grid2">${lift?stepsField(o)+`<div class="fld"><label>Post-meal walks (count)</label><input inputmode="numeric" data-f="daily.meals" value="${esc(getPath(o,'daily.meals')||'')}"><span class="unit" style="visibility:hidden" aria-hidden="true">.</span></div>`:''}
  <div class="fld"><label>Protein today (g). Target 100–125</label>${(()=>{const iso=isoOf(dateOf(w,DAYS.indexOf(dk)));return hasFood(iso)?`<button class="ghost" style="width:100%;min-height:46px;border-color:var(--cyan);color:var(--cyan)" data-a="fopen" data-v="${iso}">${Math.round(dayTotals(iso).p)} g from Food</button>`:`<input inputmode="numeric" data-f="daily.protein" value="${esc(getPath(o,'daily.protein')||'')}" placeholder="or log it in Food">`})()}</div>
  ${!lift?`<div class="fld"><label>Water / hydration note</label><input data-f="daily.water" value="${esc(getPath(o,'daily.water')||'')}"></div>`:''}</div>
  ${!lift?`<textarea class="note" data-f="notes" placeholder="Notes for today">${esc(o.notes||'')}</textarea>`:''}</div>`;
@@ -1492,7 +1512,7 @@ function render(){
 /* ================= EVENTS ================= */
 document.addEventListener('input',ev=>{
  const t=ev.target;const {w,d}=view,dk=DAYS[d];
- if(t.dataset.f){mutDay(w,dk,o=>setPath(o,t.dataset.f,t.value));if(t.dataset.steps){const n=t.parentElement.querySelector('.stepnote');if(n)n.textContent=stepsNote(t.value)}const sec=t.closest('.ex');if(sec)updateCount(sec,t.dataset.f);
+ if(t.dataset.f){mutDay(w,dk,o=>setPath(o,t.dataset.f,t.value));{const wv=t.parentElement&&t.parentElement.querySelector('.was');const mm=t.dataset.f.match(/^ex\.([^.]+)\.sets\.\d+\.(\w+)$/);if(wv&&mm){const ex=findEx(dk,mm[1]);if(ex){const ee=effectiveEx(ex,(getDay(w,dk).ex||{})[ex.id],w,dk);wv.className='was'+wasCls(ee,mm[2],wv.dataset.was,t.value)}}}if(t.dataset.steps){const n=t.parentElement.querySelector('.stepnote');if(n)n.textContent=stepsNote(t.value)}const sec=t.closest('.ex');if(sec)updateCount(sec,t.dataset.f);
   const mm=t.dataset.f.match(/^ex\.([^.]+)\.sets\.0\.kg$/);if(mm&&WU[mm[1]]&&sec){const box=sec.querySelector('[data-wu]');const ex=findEx(dk,mm[1]);if(box&&ex){const tmp=document.createElement('div');tmp.innerHTML=renderWarmup(ex,w,dk,(getDay(w,dk).ex||{})[mm[1]]||{});box.replaceWith(tmp.firstElementChild)}}}
 });
 document.addEventListener('change',async ev=>{
