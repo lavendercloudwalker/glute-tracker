@@ -268,6 +268,11 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .track2 .band{position:absolute;top:0;bottom:0;background:rgba(61,255,176,.22);border-left:1.5px solid var(--mint);border-right:1.5px solid var(--mint)}
 .track2 .mark{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--yellow);box-shadow:0 0 6px var(--yellow);z-index:1}
 .fmh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.fmm{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.fmm span{font-size:13px;color:#C9B5E8;background:rgba(255,255,255,.04);border:1px solid rgba(255,110,199,.3);border-radius:999px;padding:3px 10px}
+.fmm b{color:#fff;font-weight:700}
+.fmm .fc{border-color:rgba(45,226,230,.6);background:rgba(45,226,230,.08)}
+.fmm .fc b{color:var(--cyan)}
 .frow{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;border:0;border-top:1px solid rgba(157,107,255,.22);background:none;padding:10px 0;min-height:52px}
 .frow .fn{flex:1;min-width:0;font-weight:600}
 .frow .fn small,.frow .fm small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
@@ -405,6 +410,7 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 
 /* Last-time comparison */
 .lastnote{margin-top:4px;font-size:13.5px;color:#BFEFF2}
+.otherv{font-size:13.5px;color:#BFEFF2}
 .lastnote b{color:var(--cyan)}
 .was{display:block;text-align:center;font-size:12px;line-height:1.2;color:var(--dim);margin-top:1px}
 .was.up{color:var(--mint);text-shadow:0 0 6px rgba(61,255,176,.5)}
@@ -453,7 +459,7 @@ const LADDERS={
   ["Low incline / bench push-up","4 × 5–12","4 × 10–12 clean"],
   ["Floor push-up","4 × 3–10","4 × 10 with clean range"],
   ["Harder floor variation (weighted / feet elevated)","4 × 3–10","Only after strong floor reps"]]},
- pull:{name:"Pull-up",levels:[
+ pull:{name:"Pull-up",start:2,levels:[
   ["Active hang + scapular pull","2–3 × 5–8","Scapular movement controlled, shoulders feel good"],
   ["Assisted pull-up","3–4 × 4–8","All sets hit 8 with 1–2 RIR"],
   ["Less-assisted pull-up","3–4 × 4–8","Repeat the 8-rep criterion at lower assistance"],
@@ -467,6 +473,11 @@ const LADDERS={
   ["Chest-to-wall handstand","3–5 × 20–45 s","30–45 s stacked hold is consistent"],
   ["Toe / heel pulls from wall","5–10 quality attempts","Brief balance is repeatable"],
   ["Freestanding kick-up attempts","5–12 min","Best hold gradually increases"]]},
+ dbug:{name:"Dead bug",start:2,levels:[
+  ["Heel taps (knees bent, lower one foot to tap the floor)","2 × 6–8 per side","2 × 8 per side with a long exhale and no doming or pressure"],
+  ["Dead bug (opposite arm and leg reach out)","2 × 6–8 per side","2 × 8 per side, slow, with your low back staying quiet and no doming"],
+  ["Dead bug with a 3 s hold at full reach","2 × 6–8 per side","2 × 8 per side with steady holds, smooth breathing and no doming"],
+  ["Loaded dead bug (light dumbbell or band in your hands)","2 × 6–8 per side","Add load in small steps, only while the reps stay smooth with no doming or pressure"]]},
  pike:{name:"Pike push-up",levels:[
   ["Hands-elevated pike push-up (hands on a bench or box)","2–3 × 5–8","3 × 8 clean, head travelling forward between your hands"],
   ["Pike push-up negatives","2–3 × 3–5","3 × 5 slow lowerings (3–5 s each), pressing back up any way you can"],
@@ -482,8 +493,8 @@ const PLAN={
    {id:'ht',name:"Hip thrust",variants:["Smith","Barbell","Machine glute drive","Weighted bridge"],sets:3,reps:"6–8",kind:'comp',rest:"2.5–3 min",restS:165,unit:'kg',main:1,cue:"Ribs over pelvis. Full hip extension from the glutes, not a lumbar arch."},
    {id:'sq',name:"Deep squat pattern",variants:["Hack squat","Leg press","Smith squat","Belt squat"],sets:3,reps:"8–10",kind:'comp',rest:"2–3 min",restS:150,unit:'kg',main:1,cue:"Deepest pain-free range you can control. Keep the pelvis stable."},
    {id:'lc',name:"Seated leg curl",sets:2,reps:"10–15",kind:'fixed',rir:"1–2",rest:"90 s",restS:90,unit:'kg',cue:"Control the return. Keep your hips planted."},
-   {id:'abA',name:"Hip abduction",variants:["Seated machine","Cable","Side-lying"],sets:2,reps:"15–25",kind:'iso',rir:"0–2",rest:"60–90 s",restS:75,unit:'kg',cue:"Controlled range, no bouncing."},
-   {id:'dbug',name:"Dead bug with long exhale",sets:2,reps:"6–8",per:"per side",kind:'core',rest:"45–60 s",restS:50,unit:'bw',cue:"Exhale through the hard part. No doming or pressure symptoms. Progress lever length before load."}
+   {id:'abA',name:"Hip abduction",alt:'abC',variants:["Seated machine","Cable","Side-lying"],sets:2,reps:"15–25",kind:'iso',rir:"0–2",rest:"60–90 s",restS:75,unit:'kg',cue:"Controlled range, no bouncing."},
+   {id:'dbug',name:"Dead bug with long exhale",ladder:'dbug',sets:2,reps:"6–8",per:"per side",kind:'core',rest:"45–60 s",restS:50,unit:'bw',cue:"Exhale through the hard part. No doming or pressure symptoms. Progress lever length before load."}
   ]},
  tue:{type:'lift',title:"Calisthenics",sub:"Upper body with your husband. Handstand, pull-up, push-up, rows, shoulders and core.",
   walk:"Normal activity plus an optional post-meal walk.",
@@ -520,7 +531,7 @@ const PLAN={
    {id:'hs2',name:"Easy handstand micro-dose",ladder:'hand',sets:1,reps:"5–8 min",kind:'skill',rir:"Stop early",rest:"45–90 s",restS:60,unit:'skill',cue:"Stay at or below Tuesday's level. No grinding. Keep it easy in every phase."},
    {id:'gd',name:"Glute drive",variants:["Machine glute drive","Weighted glute bridge","Smith hip thrust (moderate)"],sets:2,reps:"10–15",kind:'comp',rest:"90–120 s",restS:105,unit:'kg',main:1,cue:"Control the lowering. Finish with the glutes, not the low back."},
    {id:'su',name:"Step-up",variants:["High step-up","Light Smith reverse lunge","Supported split squat"],sets:2,reps:"10–12",per:"per leg",kind:'fixed',rir:"2",rest:"2 min",restS:120,unit:'kg',main:1,cue:"Drive through the working leg; don't push off the back leg. Keep it slightly easier than Thursday."},
-   {id:'abC',name:"Hip abduction",variants:["Seated machine","Cable","Side-lying"],sets:2,reps:"15–25",kind:'iso',rir:"0–1",rest:"60–90 s",restS:75,unit:'kg',cue:"Controlled range. Pause briefly if it helps. Hard but technically clean."},
+   {id:'abC',name:"Hip abduction",alt:'abA',variants:["Seated machine","Cable","Side-lying"],sets:2,reps:"15–25",kind:'iso',rir:"0–1",rest:"60–90 s",restS:75,unit:'kg',cue:"Controlled range. Pause briefly if it helps. Hard but technically clean."},
    {id:'kb',name:"Cable kickback",optional:1,skipF:1,sets:2,reps:"12–20",per:"per leg",kind:'iso',rir:"0–2",rest:"60–90 s",restS:75,unit:'kg',cue:"Pelvis square. Move through the hip, not the lumbar spine."},
    {id:'pull2',name:"Pull micro-dose",ladder:'pull',variants:["Assisted pull-up","Lat pulldown"],sets:2,reps:"6–10",kind:'fixed',rir:"2",rest:"2 min",restS:120,unit:'kg',kgLabel:'kg / assist',assist:1,cue:"Same pattern as Tuesday. Stop fresh. Reduce assistance only when Tuesday is also progressing."},
    {id:'cc',name:"Core or carry",optional:1,variants:["Side plank","Pallof press","Suitcase carry"],sets:2,reps:"20–40 s or 20–40 m",per:"per side",kind:'core',rest:"60 s",restS:60,unit:'val',valLabel:'s / m / reps',cue:"No symptoms. Optional if time and recovery are good."}
@@ -615,10 +626,20 @@ function entrySets(e){if(!e||!e.sets)return[];return Object.keys(e.sets).sort((a
 function loggedSets(e){return entrySets(e).filter(s=>s&&(s.done||num(s.reps)!=null||num(s.v)!=null||num(s.sec)!=null||num(s.min)!=null))}
 function isPressVar(e){return /press/i.test((e&&e.variant)||'')}
 function effectiveEx(ex,e,w,dk){if(!ex)return ex;e=e||{};
+ if(ex.assist&&e.variant==='Lat pulldown')return Object.assign({},ex,{assist:0,kgLabel:'kg'});
  if(ex.pressAlt&&isPressVar(e))return Object.assign({},ex,{name:'Shoulder press',noVariantInName:1,unit:'kg',ladder:null,repsFromLevel:0,reps:'8–12',cue:'Seated with your back supported, ribs down. Press up and slightly back, then lower with control to about chin height. Stop 1–2 reps short.'});
  if(ex.repsFromLevel&&ex.ladder){const L=LADDERS[ex.ladder],lv=currentLevel(ex.ladder,w,dk,ex.id),t=(L.levels[lv-1]||[])[1]||'';const m=t.split('×');if(m[1])return Object.assign({},ex,{reps:m[1].trim()})}
  return ex}
-function prevFor(ex,w,dk,e){return findPrev(ex.id,w,dk,ex.pressAlt?(pe=>isPressVar(pe)===isPressVar(e)):null)}
+function varOf(ex,e){return (e&&e.variant)||(ex&&ex.variants?ex.variants[0]:'')}
+// Last session with the SAME variant (machine vs cable etc.). Falls back to the twin exercise on another day (ex.alt) with that variant.
+function prevFor(ex,w,dk,e){
+ if(!ex.variants)return findPrev(ex.id,w,dk);
+ const v=varOf(ex,e),same=pe=>varOf(ex,pe)===v;
+ let p=findPrev(ex.id,w,dk,same);
+ if(!p&&ex.alt){const tw=findPrev(ex.alt,w,dk,same);if(tw)p=Object.assign(tw,{twin:1})}
+ return p}
+// Most recent session of this exercise on a different variant (shown for reference only)
+function prevOther(ex,w,dk,e){if(!ex.variants)return null;const v=varOf(ex,e);return findPrev(ex.id,w,dk,pe=>varOf(ex,pe)!==v)}
 function findPrev(exId,w,d,filter){
  const cur=orderIdx(w,d);let best=null;
  for(const id in store.days){const o=store.days[id];if(!o.ex||!o.ex[exId])continue;
@@ -631,7 +652,7 @@ function currentLevel(ladder,w,d,exId){
  const ci=orderIdx(w,d);let best=null;
  for(const id in store.days){const o=store.days[id];if(!o.ex)continue;const i=orderIdx(o.w,o.d);if(i>ci)continue;
   for(const k in o.ex){const ex=findEx(o.d,k);if(ex&&ex.ladder===ladder&&o.ex[k].level&&(!best||i>best.i))best={i,l:+o.ex[k].level}}}
- return best?best.l:(ladder==='pull'?2:1);
+ return best?best.l:(LADDERS[ladder].start||1);
 }
 function findEx(d,id){const p=PLAN[d];return p&&p.ex?p.ex.find(e=>e.id===id):null}
 function sessionDone(w,d){const o=getDay(w,d);if(o.complete)return true;if(!TRAIN.includes(d))return false;const pr=dayProgress(w,d);return pr.total>0&&pr.done/pr.total>=0.75}
@@ -730,6 +751,9 @@ function foodRow(f,k,sub){return `<button class="frow" data-a="fpick" data-k="${
 let pickList=[];
 function renderSheet(){
  const el=document.getElementById('sheet');if(!sheet.open){el.innerHTML='';el.classList.remove('show');return}
+ // Keep the scroll position when the same screen re-renders (e.g. tapping "servings"); start at the top on a new screen
+ const vkey=sheet.sel?'sel:'+(sheet.sel.id||sheet.sel.code||sheet.sel.name)+':'+(sheet.editId||''):'tab:'+sheet.tab;
+ const oldBody=el.querySelector('.sbody');const keepY=oldBody&&sheet._vkey===vkey?oldBody.scrollTop:0;sheet._vkey=vkey;
  el.classList.add('show');const mealName=(MEALS.find(m=>m[0]===sheet.meal)||[0,'Food'])[1];
  let body='';
  if(sheet.sel){body=renderAmount()}
@@ -757,8 +781,8 @@ function renderSheet(){
   }else if(sheet.tab==='mine'){
    pickList=[];
    body+=`<h3>Saved meals</h3>`;
-   body+=store.meals.length?store.meals.map((m,i)=>{const t={kcal:0,p:0};m.items.forEach(e=>{const x=entryMacros(e);t.kcal+=x.kcal;t.p+=x.p});
-    return `<div class="mealrow"><button class="frow" data-a="faddmeal" data-i="${i}"><span class="fn">${esc(m.name)}<small>${m.items.length} items</small></span><span class="fm">${Math.round(t.kcal)} kcal<small>P ${r1(t.p)} g</small></span></button><button class="xbtn" data-a="fdelmeal" data-i="${i}" aria-label="Delete meal">×</button></div>`}).join(''):`<p class="muted small">Log a few foods in a meal, then tap "Save as meal" to reuse it in one tap.</p>`;
+   body+=store.meals.length?store.meals.map((m,i)=>{const t={kcal:0,p:0,c:0};m.items.forEach(e=>{const x=entryMacros(e);t.kcal+=x.kcal;t.p+=x.p;t.c+=x.c});
+    return `<div class="mealrow"><button class="frow" data-a="faddmeal" data-i="${i}"><span class="fn">${esc(m.name)}<small>${m.items.length} items</small></span><span class="fm">${Math.round(t.kcal)} kcal<small>P ${r1(t.p)} g, C ${r1(t.c)} g</small></span></button><button class="xbtn" data-a="fdelmeal" data-i="${i}" aria-label="Delete meal">×</button></div>`}).join(''):`<p class="muted small">Log a few foods in a meal, then tap "Save as meal" to reuse it in one tap.</p>`;
    body+=`<h3>My foods</h3>`;
    body+=store.myFoods.length?store.myFoods.map((f,i)=>{pickList.push(f);return `<div class="mealrow">${foodRow(f,pickList.length-1)}<button class="xbtn" data-a="fdelmine" data-i="${i}" aria-label="Delete food">×</button></div>`}).join(''):`<p class="muted small">Foods you save or create appear here and work without signal.</p>`;
    const c=sheet.create;
@@ -779,6 +803,7 @@ function renderSheet(){
   }
  }
  el.innerHTML=`<div class="sheetin"><div class="shead2"><button class="xbtn big2" data-a="${sheet.sel&&!sheet.editId?'fback':'sheetclose'}" aria-label="Back">${sheet.sel&&!sheet.editId?'‹':'×'}</button><h2>${sheet.editId?'Edit food':'Add to '+esc(mealName)}</h2></div><div class="sbody">${body}</div></div>`;
+ if(keepY){const nb=el.querySelector('.sbody');if(nb)nb.scrollTop=keepY}
  if(sheet.tab==='scan'&&!sheet.sel&&sheet.scanning)startScan(true);
 }
 function amountGrams(){const v=num(sheet.g);if(v==null)return 0;return sheet.unit==='serv'&&sheet.sel.servingG?v*sheet.sel.servingG:v}
@@ -845,8 +870,9 @@ function renderFood(){
   else if(cmn&&cmx&&t.c>=cmn)h+=`<p class="small" style="margin:4px 0 0;color:var(--cyan)">Carbs in your range.</p>`}
  h+=`</div>`;
  h+=renderGap(iso);
- MEALS.forEach(([k,label])=>{const es=(day.entries||[]).filter(e=>e.meal===k);const mt={kcal:0,p:0};es.forEach(e=>{const m=entryMacros(e);mt.kcal+=m.kcal;mt.p+=m.p});
-  h+=`<div class="card fmeal"><div class="fmh"><h2>${label}</h2><span class="count">${es.length?Math.round(mt.kcal)+' kcal, '+r1(mt.p)+' g P':''}</span></div>`;
+ MEALS.forEach(([k,label])=>{const es=(day.entries||[]).filter(e=>e.meal===k);const mt={kcal:0,p:0,c:0,f:0};es.forEach(e=>{const m=entryMacros(e);mt.kcal+=m.kcal;mt.p+=m.p;mt.c+=m.c;mt.f+=m.f});
+  h+=`<div class="card fmeal"><div class="fmh"><h2>${label}</h2><span class="count">${es.length?Math.round(mt.kcal)+' kcal':''}</span></div>`;
+  if(es.length)h+=`<div class="fmm"><span>Protein <b>${r1(mt.p)} g</b></span><span class="fc">Carbs <b>${r1(mt.c)} g</b></span><span>Fat <b>${r1(mt.f)} g</b></span></div>`;
   es.forEach(e=>{const m=entryMacros(e);h+=`<button class="frow entry" data-a="fedit" data-id="${e.id}"><span class="fn">${esc(tidyName(e.name)||'Quick add')}<small>${e.quick?'quick add':e.unitOnly?r1(e.g/100)+(r1(e.g/100)===1?' serving':' servings'):fmtG(e.g)+' '+uL(e)}${e.brand?', '+esc(e.brand):''}</small></span><span class="fm">${Math.round(m.kcal)} kcal<small>P ${r1(m.p)} C ${r1(m.c)} F ${r1(m.f)}</small></span></button>`});
   h+=`<div class="fmactions"><button class="addf" data-a="fadd" data-meal="${k}">+ Add food</button>${es.length>1?`<button class="more" data-a="fsavemeal" data-meal="${k}">Save as meal</button>`:''}</div></div>`});
  h+=`<details class="card" ${dOpen('targets',false)}><summary><h2>Targets</h2><span class="chev">›</span></summary>
@@ -952,7 +978,7 @@ function suggestedKg(ex,w,prev){
 function roundLoad(x,work){const step=work>=20?2.5:1;return Math.round(x/step)*step}
 function renderWarmup(ex,w,dk,e){
  const plan=WU[ex.id];if(!plan)return '';
- const typed=num(getPath(e,'sets.0.kg'));const sug=suggestedKg(ex,w,findPrev(ex.id,w,dk));const work=typed!=null&&typed>0?typed:sug;
+ const typed=num(getPath(e,'sets.0.kg'));const sug=suggestedKg(ex,w,prevFor(ex,w,dk,e));const work=typed!=null&&typed>0?typed:sug;
  const done=e.wu||{};
  let inner;
  if(!(work>0)){inner=`<p class="small muted" style="margin:4px 0 0">Enter your working weight in set 1 and your ramp-up sets appear here.</p>`}
@@ -967,6 +993,8 @@ function renderWarmup(ex,w,dk,e){
 // YouTube search phrases for every exercise, alternative and skill level
 const VQ={
  'Pike push-ups':'','Dumbbell press':'seated dumbbell shoulder press form','Machine press':'machine shoulder press form',
+ 'Heel taps (knees bent, lower one foot to tap the floor)':'dead bug heel taps','Dead bug (opposite arm and leg reach out)':'dead bug exercise form',
+ 'Dead bug with a 3 s hold at full reach':'dead bug with hold core exercise','Loaded dead bug (light dumbbell or band in your hands)':'weighted dead bug form',
  'Hands-elevated pike push-up (hands on a bench or box)':'incline pike push up hands on bench','Pike push-up negatives':'pike push up negatives','Floor pike push-up':'pike push up form','Feet-elevated pike push-up':'elevated pike push up feet on box form',
  'Smith':'Smith machine hip thrust form','Barbell':'barbell hip thrust form','Machine glute drive':'glute drive machine form','Weighted bridge':'weighted glute bridge form',
  'Hack squat':'hack squat form for glutes','Leg press':'leg press form for glutes','Smith squat':'Smith machine squat form','Belt squat':'belt squat form',
@@ -1009,7 +1037,7 @@ function prCompute(){
   const sets=Object.keys(e.sets).sort((a,b)=>a-b).map(i=>[i,e.sets[i]]).filter(([,s])=>s&&(s.done||num(s.reps)!=null||num(s.sec)!=null));
   if(!sets.length)return;
   let levelUp=null;
-  if(ex.ladder&&!(ex.assist&&variant==='Lat pulldown')){const m=ladderMax[ex.ladder];if(m!=null&&lv>m)levelUp={t:'level',title:LADDERS[ex.ladder].name+' level up',txt:'Level '+lv+': '+LADDERS[ex.ladder].levels[lv-1][0],prev:'Level '+m};ladderMax[ex.ladder]=Math.max(m||0,lv)}
+  if(ex.ladder&&variant!=='Lat pulldown'){const m=ladderMax[ex.ladder];if(m!=null&&lv>m)levelUp={t:'level',title:LADDERS[ex.ladder].name+' level up',txt:'Level '+lv+': '+LADDERS[ex.ladder].levels[lv-1][0],prev:'Level '+m};ladderMax[ex.ladder]=Math.max(m||0,lv)}
   sets.forEach(([i,s],n)=>{const types=[];if(n===0&&levelUp)types.push(levelUp);
    const kg=num(s.kg),reps=num(s.reps);
    if(ex.unit==='kg'&&ex.assist&&variant!=='Lat pulldown'){ // assisted pull-ups: less assistance is the win
@@ -1026,7 +1054,7 @@ function prCompute(){
       if(!b.top||kg>b.top.kg||(kg===b.top.kg&&reps>b.top.reps))b.top={kg,reps,w:o.w,d:o.d}}
      b.count++}
    }else if(ex.unit==='bw'){
-    if(reps){const name=ex.ladder?LADDERS[ex.ladder].name+' L'+lv+' ('+LADDERS[ex.ladder].levels[lv-1][0]+')':ex.name;const b=best[name]||(best[name]={name,kind:'bw',maxReps:0,count:0,top:null});
+    if(reps){const name=ex.ladder?(()=>{const L=LADDERS[ex.ladder],sh=L.levels[lv-1][0].replace(/ \(.*\)$/,'');return L.name+' L'+lv+(sh.toLowerCase()!==L.name.toLowerCase()?' ('+sh+')':'')})():ex.name;const b=best[name]||(best[name]={name,kind:'bw',maxReps:0,count:0,top:null});
      if(b.count&&reps>b.maxReps)types.push({t:'reps',title:name,txt:reps+' reps',prev:'best '+b.maxReps});b.maxReps=Math.max(b.maxReps,reps);b.count++;if(!b.top||reps>=b.top.reps)b.top={reps,w:o.w,d:o.d}}
    }else if(ex.unit==='sec'||ex.unit==='skill'){
     const sec=num(s.sec);if(sec){const name=ex.unit==='skill'?'Handstand L'+lv+' hold':ex.name;const b=best[name]||(best[name]={name,kind:'sec',maxSec:0,count:0,top:null});
@@ -1264,9 +1292,9 @@ function prevFeel(prev){
  if(bits.length)out+=`<div class="lastnote">${esc(bits.join(', ').replace(/^./,m=>m.toUpperCase()))}.</div>`;
  if((o.notes||'').trim())out+=`<div class="lastnote"><b>Session note:</b> ${esc(o.notes.trim())}</div>`;
  return out}
-function hintFor(ex,w,prev){
+function hintFor(ex,w,prev,dk,e){
  const p=phase(w),[lo,hi]=rng(ex.reps);
- if(!prev){if(ex.unit==='kg'&&!ex.assist)return 'First time logging this. Choose a load you could lift for about '+(hi+2)+' reps, so you finish each set with a couple in reserve.';return ''}
+ if(!prev){if(ex.unit==='kg'&&!ex.assist)return 'First time logging '+(ex.variants?varOf(ex,e):'this')+'. Choose a load you could lift for about '+(hi+2)+' reps, so you finish each set with a couple in reserve.';return ''}
  const ls=loggedSets(prev.e);
  if(p==='Deload')return 'Deload week: keep your usual load, do fewer sets and stop 3–4 reps short.';
  if(ex.unit==='kg'){
@@ -1278,7 +1306,14 @@ function hintFor(ex,w,prev){
   if(allTop){const inc=kg<20?1:2.5;return 'Every set reached '+hi+' last time. Try '+(Math.round((kg+inc)*100)/100)+' kg today (or the next pin on a machine).'}
   return 'Stay at '+kg+' kg and add a rep where you can. Add load once every set reaches '+hi+'.';
  }
- if(ex.unit==='bw'){const allTop=ls.length&&ls.every(s=>(num(s.reps)||0)>=hi);return allTop?'Top of the range on every set. Check the level criteria below before moving up.':'Same level, aim for one more rep per set.'}
+ if(ex.unit==='bw'){const allTop=ls.length&&ls.every(s=>(num(s.reps)||0)>=hi);
+  if(!allTop)return 'Same level, aim for one more rep per set.';
+  if(ex.ladder&&dk){const L=LADDERS[ex.ladder],lv=currentLevel(ex.ladder,w,dk,ex.id),cur=L.levels[lv-1];
+   if(lv>=L.levels.length)return 'Top of the range on every set. You are on the top level: keep the reps clean and slow.';
+   const nx='level '+(lv+1)+': '+L.levels[lv][0].replace(/ \(.*\)$/,'');
+   const p2=findPrev(ex.id,prev.w,prev.d),top2=p2&&loggedSets(p2.e).length&&loggedSets(p2.e).every(s=>(num(s.reps)||0)>=hi);
+   return top2?'Top of the range two sessions in a row. If the reps felt slow and controlled, try '+nx+'.':'Top of the range on every set. Do that once more and you\'re ready for '+nx+'.'}
+  return 'Top of the range on every set. Make it a little harder next time: slower reps or a harder variation.'}
  if(ex.unit==='sec'||ex.unit==='carry')return 'Add a few seconds or metres when it feels controlled.';
  return '';
 }
@@ -1303,9 +1338,11 @@ function renderEx(w,dk,o,ex,light){
   <div class="lvlnote">Target ${esc(cur[1])}. Move up when: ${esc(cur[2])}, for at least two sessions.</div></div>`}
  h+=videoRow(ex,w,dk,e);
  if(r.skip){h+=`<p class="cue">${esc(ex.cue)}</p></section>`;return h}
- const prev=prevFor(ex,w,dk,e);const hint=hintFor(ex,w,prev);
- if(prev||hint){
-  h+=`<div class="last">${prev?`<div><b>Last time</b> (week ${prev.w}, ${DAYNAMES[DAYS.indexOf(prev.d)].slice(0,3)}${prev.e.variant?', '+esc(prev.e.variant):''}): ${esc(prevSummary(ex,prev.e))}</div>${prevFeel(prev)}`:''}${hint?`<div class="hint">${esc(hint)}</div>`:''}
+ const prev=prevFor(ex,w,dk,e);const hint=hintFor(ex,w,prev,dk,e);
+ const other=!prev?prevOther(ex,w,dk,e):null;
+ if(prev||hint||other){
+  const dn=d=>DAYNAMES[DAYS.indexOf(d)].slice(0,3);
+  h+=`<div class="last">${prev?`<div><b>Last time${ex.variants?' on '+esc(varOf(ex,e)):''}</b> (week ${prev.w}, ${dn(prev.d)}${prev.twin?', '+esc(PLAN[prev.d].title):''}): ${esc(prevSummary(ex,prev.e))}</div>${prevFeel(prev)}`:''}${other?`<div class="otherv">No ${esc(varOf(ex,e))} sets logged yet. Last time you did ${esc(varOf(ex,other.e))} (week ${other.w}, ${dn(other.d)}): ${esc(prevSummary(ex,other.e))}</div>${(other.e.note||'').trim()?`<div class="lastnote"><b>Your note:</b> ${esc(other.e.note.trim())}</div>`:''}`:''}${hint?`<div class="hint">${esc(hint)}</div>`:''}
   ${prev&&(ex.unit==='kg'||ex.unit==='carry')&&loggedSets(prev.e).some(s=>num(s.kg)!=null)?`<button class="uselast" data-a="uselast" data-ex="${ex.id}">Fill today's kg from last time</button>`:''}</div>`}
  h+=renderWarmup(ex,w,dk,e);
  const prevSets=prev?loggedSets(prev.e):[];
@@ -1494,7 +1531,7 @@ function renderGuide(){
   <li><b>Walk after meals:</b> 10–15 minutes helps your glucose.</li>
   <li><b>Hydration:</b> drink to thirst, aim for pale-yellow urine. Breastfeeding adds to what you need.</li></ul>
   <p class="small muted" style="margin:6px 0 0">These follow the targets you set on the Food tab.</p>`})()}</div>
- <div class="card"><h2>Skill ladders</h2>${Object.values(LADDERS).map(L=>`<h3>${L.name}</h3><ol style="padding-left:20px;margin:0">${L.levels.map(l=>`<li class="small">${esc(l[0])}: ${esc(l[1])}. Move up when ${esc(l[2].charAt(0).toLowerCase()+l[2].slice(1))}.</li>`).join('')}</ol>`).join('')}<p class="small muted">Advance only when the current level is controlled for at least two sessions.</p></div>
+ <div class="card"><h2>Progression ladders</h2>${Object.values(LADDERS).map(L=>`<h3>${L.name}</h3><ol style="padding-left:20px;margin:0">${L.levels.map(l=>`<li class="small">${esc(l[0])}: ${esc(l[1])}. Move up when ${esc(l[2].charAt(0).toLowerCase()+l[2].slice(1))}.</li>`).join('')}</ol>`).join('')}<p class="small muted">Advance only when the current level is controlled for at least two sessions.</p></div>
  </div>`;
 }
 function renderSettings(){
