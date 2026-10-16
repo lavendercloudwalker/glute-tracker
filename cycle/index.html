@@ -72,6 +72,21 @@ header .date{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
 .endrow button{background:none;border:none;padding:4px 0;font:inherit;font-size:1.05rem;color:var(--period);border-bottom:1.5px solid var(--period);cursor:pointer}
 .endrow button.undo{color:var(--muted);border-bottom-color:var(--line);font-size:.95rem}
 
+.phasebox{display:grid;gap:4px;width:100%;justify-items:center}
+.phaselegend{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%;margin-bottom:12px;text-align:left}
+.pl{display:grid;gap:2px;padding-top:7px;border-top:2px solid var(--line);min-width:0}
+.pn{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);min-width:0}
+.pn i{width:7px;height:7px;border-radius:50%;flex:none}
+.pl.on .pn{color:var(--fg)}
+.pd{font-family:var(--mono);font-size:.62rem;color:var(--muted);line-height:1.35}
+.phasetitle{font-family:var(--display);font-weight:700;font-size:1.4rem;margin:0}
+.phasesub{margin:0;font-family:var(--mono);font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+.phasedesc{margin:4px 0 0;max-width:40ch;text-wrap:pretty}
+.phasenote{margin:0;max-width:40ch;font-size:.86rem;color:var(--muted)}
+.phasenote:empty{display:none}
+.statuslbl{margin-top:10px;font-weight:600}
+.statuslbl:empty{display:none}
+
 /* Calendar */
 .card{display:grid;gap:16px}
 .cal-head{display:flex;justify-content:space-between;align-items:baseline}
@@ -168,6 +183,14 @@ body{font-size:16px}
         <span class="phase" id="phaseChip">Loading</span>
       </div>
     </div>
+    <div class="phasebox" id="phaseBox" hidden>
+      <div class="phaselegend" id="phaseLegend"></div>
+      <h3 class="phasetitle" id="phaseTitle"></h3>
+      <p class="phasesub num" id="phaseSub"></p>
+      <p class="phasedesc" id="phaseDesc"></p>
+      <p class="phasenote" id="phaseNote"></p>
+    </div>
+    <div class="eyebrow statuslbl" id="statusLbl"></div>
     <p class="advice" id="advice">Loading your cycles…</p>
     <div class="endrow" id="endRow" hidden></div>
     <div class="keys" id="keys"></div>
@@ -194,7 +217,7 @@ body{font-size:16px}
 
   <section class="card" aria-label="Daily log">
     <h2>Log a day</h2>
-    <div class="field"><label for="logDate">Date</label><input type="date" id="logDate"></div>
+    <div class="field"><label for="logDate">Date</label><input type="date" id="logDate"><p class="hint" id="logPhase"></p></div>
     <div class="field"><span class="lbl">Bleeding</span><div class="chips" data-k="bleeding" data-c="p"></div></div>
     <div class="check" id="newCycleRow" hidden>
       <input type="checkbox" id="newCycle">
@@ -240,6 +263,7 @@ body{font-size:16px}
     <h2>How the estimates work</h2>
     <p>Ovulation usually happens 12 to 14 days before the next period. Until there are a few cycles logged, the app predicts from your average cycle length. Once you log a positive LH strip, it switches to that: ovulation is likely 24 to 36 hours after the first positive.</p>
     <p>Fertile window: the 5 days before ovulation, ovulation day, and the day after as a buffer. Aim for intercourse every 1 to 2 days through it, especially the day of the positive LH and the day after.</p>
+    <p>Phases: menstrual is your period, follicular runs from the end of your period to ovulation, ovulatory is the day before to the day after ovulation, and luteal runs from then until your next period. The fine green arc on the ring marks your fertile window. Until a positive LH test confirms ovulation, the later phases are estimates.</p>
     <p>LH strips: test once daily in the afternoon from the suggested start day, twice daily once the line starts darkening, until you get a positive.</p>
     <p>See your GP if a cycle passes day 45 with no period and negative tests, or if cycles stay longer than 35 days.</p>
   </section>
@@ -277,15 +301,18 @@ function model(){
   const avg=lens.length?Math.round(lens.reduce((a,b)=>a+b,0)/lens.length):28;
   const shortest=lens.length?Math.min(...lens):28;
   const cd=diff(cur.start,TODAY)+1;
-  const predNext=add(cur.start,avg);
+  let predNext=add(cur.start,avg);
   const lhPos=Object.keys(logs).filter(d=>d>=cur.start&&logs[d].lh==="positive").sort()[0]||null;
-  const ovu=lhPos?add(lhPos,1):add(predNext,-14);
+  let ovu=lhPos?add(lhPos,1):add(predNext,-14),ovuDelayed=false;
+  if(!lhPos&&ovu<=TODAY&&[TODAY,add(TODAY,-1)].some(d=>logs[d]&&["negative","faint"].includes(logs[d].lh))){ // still testing negative, so ovulation has not happened yet
+    ovu=add(TODAY,2);ovuDelayed=true;predNext=add(ovu,14)}
+  if(lhPos)predNext=add(ovu,14); // the luteal phase is fairly fixed, so a confirmed ovulation predicts the period better than the average
   const fStart=add(ovu,-5), fEnd=add(ovu,1);
   let lhDay=Math.max(6,shortest-17); if(lens.length<3)lhDay=Math.min(13,lhDay);
   const lhStart=add(cur.start,lhDay-1);
   const testDate=lhPos?add(lhPos,14):predNext;
   const posTest=Object.keys(logs).some(d=>d>=cur.start&&logs[d].test==="positive");
-  return {cs,lens,excl,cur,avg,cd,predNext,lhPos,ovu,fStart,fEnd,lhStart,lhDay,testDate,posTest};
+  return {cs,lens,excl,cur,avg,cd,predNext,lhPos,ovu,ovuDelayed,fStart,fEnd,lhStart,lhDay,testDate,posTest};
 }
 
 function sortedCycles(){return [...cycles].sort((a,b)=>a.start<b.start?-1:1)}
@@ -323,12 +350,57 @@ function renderEndRow(){
   box.hidden=false;
 }
 
+const PH={
+  men:{name:"Menstrual",col:"var(--period)",desc:"Oestrogen and progesterone are at their lowest, so the lining of the uterus sheds."},
+  fol:{name:"Follicular",col:"var(--accent)",desc:"Oestrogen rises as follicles grow and the lining rebuilds. Mucus moves from dry to creamy, then wetter as ovulation gets close."},
+  ovu:{name:"Ovulatory",col:"var(--fertile)",desc:"LH surges and an egg is released about 24 to 36 hours later. Mucus is clear and stretchy. These are your most fertile days."},
+  lut:{name:"Luteal",col:"var(--lh)",desc:"The corpus luteum (the \u201cyellow body\u201d this phase is named after) makes progesterone to prepare the lining. If an egg is fertilised, it implants about 6 to 12 days after ovulation."}
+};
+const NOTE={lh:"Ovulation confirmed by your positive LH test.",avg:"Estimated from your average cycle. A positive LH test will confirm ovulation.",waiting:"No LH surge yet, so ovulation is probably still to come.",hist:"Estimated from when your next period started."};
+function rng(a,b){if(a===b)return nice(a);const A=pd(a),B=pd(b);return A.getUTCMonth()===B.getUTCMonth()?A.getUTCDate()+"\u2013"+nice(b):nice(a)+"\u2013"+nice(b)}
+function phaseRanges(c,m){
+  const cs=sortedCycles(),i=cs.findIndex(x=>x.start===c.start),nx=cs[i+1]||null,pds=periodDays(),pl=avgPeriodLen();
+  const isCur=!!(m&&m.cur.start===c.start);
+  let menEnd=c.start;
+  for(let k=1;k<10;k++){const d=add(c.start,k);if(pds.has(d))menEnd=d;else break}
+  if(isCur&&!c.end&&menEnd===TODAY&&diff(c.start,TODAY)<8){const p=add(c.start,pl-1);if(p>menEnd)menEnd=p}
+  let ovu,src,end;
+  if(isCur){ovu=m.ovu;src=m.lhPos?"lh":(m.ovuDelayed?"waiting":"avg");end=add(m.predNext,-1);if(TODAY>end)end=TODAY}
+  else{const lh=Object.keys(logs).filter(d=>d>=c.start&&(!nx||d<nx.start)&&logs[d].lh==="positive").sort()[0];
+    ovu=lh?add(lh,1):(nx?add(nx.start,-14):null);src=lh?"lh":"hist";end=nx?add(nx.start,-1):add(c.start,27)}
+  const R=[{k:"men",a:c.start,b:menEnd}];
+  if(ovu){
+    const oa=add(ovu,-1)>menEnd?add(ovu,-1):add(menEnd,1),ob=add(ovu,1);
+    if(add(menEnd,1)<=add(oa,-1))R.push({k:"fol",a:add(menEnd,1),b:add(oa,-1)});
+    R.push({k:"ovu",a:oa,b:ob});
+    if(add(ob,1)<=end)R.push({k:"lut",a:add(ob,1),b:end});
+  }else R.push({k:"fol",a:add(menEnd,1),b:end});
+  return {R,src,end,c};
+}
+function phaseOn(d){const c=cycleOf(d);if(!c)return null;const P=phaseRanges(c,model());
+  const r=P.R.find(r=>d>=r.a&&d<=r.b),k=r?r.k:(d>P.end?"lut":"fol");
+  return {k,cd:diff(c.start,d)+1,est:(k!=="men"&&P.src!=="lh")||d>TODAY}}
+function phaseLine(d){const p=phaseOn(d);return p?"Cycle day "+p.cd+", "+PH[p.k].name.toLowerCase()+" phase"+(p.est?" (estimated)":""):""}
+function renderPhase(m){
+  const box=$("phaseBox"),chip=$("phaseChip");
+  if(m.posTest){chip.textContent="Positive test";chip.style.color="var(--fertile)";box.hidden=true;return}
+  const P=phaseRanges(m.cur,m),cur=P.R.find(r=>TODAY>=r.a&&TODAY<=r.b)||P.R[P.R.length-1],ph=PH[cur.k];
+  chip.textContent=ph.name;chip.style.color=ph.col;
+  $("phaseLegend").innerHTML=P.R.map(r=>`<div class="pl${r===cur?" on":""}"${r===cur?` style="border-top-color:${PH[r.k].col}"`:""}><span class="pn"><i style="background:${PH[r.k].col}"></i>${PH[r.k].name}</span><span class="pd num">${rng(r.a,r.b)}</span></div>`).join("");
+  const dayIn=diff(cur.a,TODAY)+1,len=diff(cur.a,cur.b)+1,approx=cur.k!=="men"&&P.src!=="lh"||cur.k==="lut";
+  $("phaseTitle").textContent=ph.name+" phase";
+  $("phaseSub").textContent="Day "+dayIn+(cur.k==="lut"&&TODAY>=m.predNext?", period due":(len>=dayIn?" of "+(approx?"~":"")+len:""));
+  $("phaseDesc").textContent=ph.desc;
+  $("phaseNote").textContent=cur.k==="men"?(m.cur.end?"":"Mark when your period ends to keep the phases accurate."):NOTE[P.src];
+  box.hidden=false;
+}
+
 function renderToday(){
   const m=model();
-  if(!m){$("cdNum").textContent="–";$("phaseChip").textContent="No cycle yet";$("advice").textContent="Log the first day of your next period to begin.";$("keys").innerHTML="";drawDial(0,28,null);return}
+  if(!m){$("cdNum").textContent="–";$("phaseChip").textContent="No cycle yet";$("phaseBox").hidden=true;$("statusLbl").textContent="";$("advice").textContent="Log the first day of your next period to begin.";$("keys").innerHTML="";drawDial(0,28,null);return}
   $("cdNum").textContent=m.cd;
   let phase,color,soft,advice;
-  const late=m.cd>m.avg+7;
+  const late=TODAY>=add(m.predNext,7);
   if(m.posTest){phase="Positive test";color="var(--fertile)";soft="var(--fertile-soft)";advice="A positive pregnancy test is logged this cycle. Contact your huisarts soon so your care can start early."}
   else if(m.cur.end?TODAY<=m.cur.end:(m.cd<=8&&periodDays().has(TODAY))){phase="Period";color="var(--period)";soft="var(--period-soft)";advice="Period days. Nothing to track yet beyond bleeding. LH strips start on "+nice(m.lhStart)+" (day "+m.lhDay+")."}
   else if(TODAY<m.fStart&&TODAY<m.lhStart){phase="Follicular";color="var(--accent)";soft="var(--bg)";advice="Building up to ovulation. Start LH strips on "+nice(m.lhStart)+" and begin intercourse every 1 to 2 days from then."}
@@ -338,17 +410,17 @@ function renderToday(){
   else if(TODAY<m.testDate){phase="Two-week wait";color="var(--lh)";soft="var(--lh-soft)";advice="Likely past ovulation. Earliest reliable pregnancy test: "+nice(m.testDate)+", using first-morning urine."}
   else if(late){phase="Late";color="var(--period)";soft="var(--period-soft)";advice="Your period is "+diff(m.predNext,TODAY)+" days later than expected. Take a pregnancy test. "+(m.cd>=45?"If it is negative, book an appointment with your huisarts, as you are past day 45.":"If it is negative, retest in 3 to 5 days, and see your huisarts if you reach day 45 with no period.")}
   else{phase="Test day";color="var(--period)";soft="var(--period-soft)";advice="Period due around now. If it has not started, take a pregnancy test with first-morning urine."}
-  const chip=$("phaseChip");chip.textContent=phase;chip.style.background=soft;chip.style.color=color;
+  const stl=$("statusLbl");stl.textContent=phase;stl.style.color=color;renderPhase(m);
   $("advice").textContent=advice;
   const k=[
     ["LH strips",nice(m.lhStart),"From cycle day "+m.lhDay,"var(--lh)"],
-    [m.lhPos?"Ovulation":"Est. ovulation",nice(m.ovu),m.lhPos?"LH positive + 1 day":"Predicted","var(--fertile)"],
+    [m.lhPos?"Ovulation":"Est. ovulation",nice(m.ovu),m.lhPos?"LH positive + 1 day":(m.ovuDelayed?"No LH surge yet":"Predicted"),"var(--fertile)"],
     ["Fertile window",nice(m.fStart)+" to "+nice(m.fEnd),"Every 1 to 2 days","var(--fertile-soft)"],
     ["Pregnancy test",nice(m.testDate),m.lhPos?"14 days after LH positive":"If no period by then","var(--period)"],
   ];
   $("keys").innerHTML=k.map(x=>`<div class="key"><span class="kl"><i style="background:${x[3]}"></i>${x[0]}</span><b class="num">${x[1]}</b><span class="sub">${x[2]}</span></div>`).join("");
-  $("ofLen").textContent="of ~"+m.avg+" days";
-  drawDial(m.cd,m.avg,m);
+  const clen=diff(m.cur.start,m.predNext);$("ofLen").textContent="of ~"+clen+" days";
+  drawDial(m.cd,clen,m);
 }
 
 function drawDial(cd,len,m){
@@ -357,16 +429,15 @@ function drawDial(cd,len,m){
   const seg=(i,color,w,op)=>{const a0=i*step+gap,a1=(i+1)*step-gap;const [x0,y0]=pt(a0,R),[x1,y1]=pt(a1,R);
     return `<path d="M${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 ${a1-a0>180?1:0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}" fill="none" stroke="${color}" stroke-width="${w}" stroke-opacity="${op}"/>`};
   let s=``;
-  const pds=periodDays();
+  const PR=m&&!m.posTest?phaseRanges(m.cur,m):null;
+  if(m){const i0=Math.max(0,diff(m.cur.start,m.fStart)),i1=Math.min(total,diff(m.cur.start,m.fEnd)+1);
+    if(i1>i0){const R2=R+13,[x0,y0]=pt(i0*step+gap,R2),[x1,y1]=pt(i1*step-gap,R2);
+      s+=`<path d="M${x0.toFixed(2)} ${y0.toFixed(2)} A${R2} ${R2} 0 ${(i1-i0)*step>180?1:0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}" fill="none" stroke="var(--fertile)" stroke-width="2" stroke-linecap="round"/>`}}
   for(let i=0;i<total;i++){
     let color="var(--line)",w=6;
-    if(m){const d=add(m.cur.start,i);
-      if(pds.has(d)||(!m.cur.end&&i<avgPeriodLen()&&d>TODAY))color="var(--period)";
-      else if(d===m.ovu){color="var(--fertile)";w=11}
-      else if(d>=m.fStart&&d<=m.fEnd)color="var(--fertile)";
-      else if(d===m.lhStart)color="var(--lh)";
-    }
-    const op=m&&i+1>cd?(color==="var(--line)"?1:.38):1;
+    if(PR){const d=add(m.cur.start,i),r=PR.R.find(r=>d>=r.a&&d<=r.b),k=r?r.k:(d>PR.end?"lut":null);
+      if(k)color=PH[k].col;if(d===m.ovu)w=11}
+    const op=m&&i+1>cd?.35:1;
     s+=seg(i,color,w,op);
   }
   if(m){[1,7,14,21,28,35].filter(n=>n<=total).forEach(n=>{const [x,y]=pt((n-.5)*step,R-20);s+=`<text x="${x.toFixed(1)}" y="${(y+3.5).toFixed(1)}" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${n}</text>`})}
@@ -416,7 +487,7 @@ function renderHist(){
 }
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-function renderAll(){renderToday();renderEndRow();renderCal();renderHist();if(typeof renderBackupNudge==="function")renderBackupNudge()}
+function renderAll(){renderToday();$("logPhase").textContent=phaseLine(form.date);renderEndRow();renderCal();renderHist();if(typeof renderBackupNudge==="function")renderBackupNudge()}
 
 /* Form */
 function buildChips(){
@@ -426,7 +497,7 @@ function buildChips(){
     box.addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;form[k]=form[k]===b.dataset.v?undefined:b.dataset.v;syncForm()});
   });
 }
-function loadForm(d){const l=logs[d]||{};form={date:d,bleeding:l.bleeding,mucus:l.mucus,lh:l.lh,sex:l.sex,test:l.test};$("logDate").value=d;$("logNotes").value=l.notes||"";$("newCycle").checked=cycles.some(c=>c.start===d);const oc=cycleOf(d);$("periodEnd").checked=!!(oc&&oc.end===d);syncForm();renderCal()}
+function loadForm(d){const l=logs[d]||{};form={date:d,bleeding:l.bleeding,mucus:l.mucus,lh:l.lh,sex:l.sex,test:l.test};$("logDate").value=d;$("logPhase").textContent=phaseLine(d);$("logNotes").value=l.notes||"";$("newCycle").checked=cycles.some(c=>c.start===d);const oc=cycleOf(d);$("periodEnd").checked=!!(oc&&oc.end===d);syncForm();renderCal()}
 function syncForm(){
   document.querySelectorAll(".chips").forEach(box=>{const k=box.dataset.k;box.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",String(form[k]===b.dataset.v)))});
   const bleed=["light","medium","heavy"].includes(form.bleeding);
