@@ -253,6 +253,7 @@ nav.tabs button.on svg{filter:drop-shadow(0 0 5px var(--pink))}
 .clegend span{display:flex;align-items:center;gap:5px}
 .clegend i{width:11px;height:11px;border-radius:3px;display:inline-block}
 /* Food tab */
+.warnline{margin:8px 0 10px;padding:8px 12px;border:1.5px solid var(--orange);border-radius:12px;background:rgba(255,140,66,.1);color:#FFE2C9;font-size:14px}
 .cerr{margin:12px 0 0;padding:9px 12px;border:1.5px solid var(--red);border-radius:12px;background:rgba(255,84,112,.12);color:#FFD0D8;font-weight:600}
 .ftotals .fbig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .fbig>div{text-align:center;border:1.5px solid rgba(255,110,199,.45);border-radius:14px;padding:10px 4px;background:rgba(10,3,26,.55)}
@@ -469,7 +470,7 @@ const LADDERS={
  hand:{name:"Handstand",levels:[
   ["Box pike hold","3 × 20–30 s","Shoulders stacked, breathing controlled"],
   ["Feet-elevated pike hold","3 × 20–30 s","Hips stack more over shoulders"],
-  ["Wall walk","3–5 controlled reps","You can stop close to the wall without arching"],
+  ["Wall walk","3–5 controlled singles","You can stop close to the wall without arching"],
   ["Chest-to-wall handstand","3–5 × 20–45 s","30–45 s stacked hold is consistent"],
   ["Toe / heel pulls from wall","5–10 quality attempts","Brief balance is repeatable"],
   ["Freestanding kick-up attempts","5–12 min","Best hold gradually increases"]]},
@@ -484,6 +485,14 @@ const LADDERS={
   ["Floor pike push-up","2–3 × 3–8","3 × 8 with full range"],
   ["Feet-elevated pike push-up","2–3 × 3–8","3 × 8 clean. After this, wall handstand push-up negatives are the next step"]]}
 };
+// Handstand levels practised as reps rather than holds: what to log and how to do them
+const HAND_LOG={
+ 3:{reps:'wall walks',sec:'top hold s',short:'wall walks',
+  how:{hs:'Do each wall walk as a single: walk your feet up the wall and your hands in, pause at your closest point, then walk back down with control. Rest 60–90 s between. Aim for 3–5 in total and stop as soon as your lower back starts to arch. Log how many you did and your longest pause at the top.',
+   hs2:'Easy day: 2–3 wall walks as singles, staying a little further from the wall than Tuesday. Or do feet-elevated pike holds instead.'}},
+ 5:{reps:'good attempts',sec:'best balance s',short:'attempts',
+  how:{hs:'Each attempt is a single: get into your chest-to-wall or back-to-wall handstand, gently pull off the wall to find balance, then come back. Rest 30–60 s between. Log the number of good attempts and your longest balance.',
+   hs2:'Easy day: a few relaxed attempts only, stopping well before you feel tired.'}}};
 const PLAN={
  mon:{type:'lift',title:"Glutes A",sub:"Heavy tension + core. Your main progression day.",
   walk:"Optional 10–15 min easy walk after dinner.",
@@ -628,11 +637,13 @@ function isPressVar(e){return /press/i.test((e&&e.variant)||'')}
 function effectiveEx(ex,e,w,dk){if(!ex)return ex;e=e||{};
  if(ex.assist&&e.variant==='Lat pulldown')return Object.assign({},ex,{assist:0,kgLabel:'kg'});
  if(ex.pressAlt&&isPressVar(e))return Object.assign({},ex,{name:'Shoulder press',noVariantInName:1,unit:'kg',ladder:null,repsFromLevel:0,reps:'8–12',cue:'Seated with your back supported, ribs down. Press up and slightly back, then lower with control to about chin height. Stop 1–2 reps short.'});
+ if(ex.unit==='skill'&&ex.ladder==='hand'){const lv=+(e.level||currentLevel('hand',w,dk,ex.id)),m=HAND_LOG[lv];if(m)return Object.assign({},ex,{skillLog:m,handLv:lv});return Object.assign({},ex,{handLv:lv})}
  if(ex.repsFromLevel&&ex.ladder){const L=LADDERS[ex.ladder],lv=currentLevel(ex.ladder,w,dk,ex.id),t=(L.levels[lv-1]||[])[1]||'';const m=t.split('×');if(m[1])return Object.assign({},ex,{reps:m[1].trim()})}
  return ex}
 function varOf(ex,e){return (e&&e.variant)||(ex&&ex.variants?ex.variants[0]:'')}
 // Last session with the SAME variant (machine vs cable etc.). Falls back to the twin exercise on another day (ex.alt) with that variant.
 function prevFor(ex,w,dk,e){
+ if(ex.handLv)return findPrev(ex.id,w,dk,(pe,o)=>+(pe.level||currentLevel('hand',o.w,o.d,ex.id))===ex.handLv);
  if(!ex.variants)return findPrev(ex.id,w,dk);
  const v=varOf(ex,e),same=pe=>varOf(ex,pe)===v;
  let p=findPrev(ex.id,w,dk,same);
@@ -643,7 +654,7 @@ function prevOther(ex,w,dk,e){if(!ex.variants)return null;const v=varOf(ex,e);re
 function findPrev(exId,w,d,filter){
  const cur=orderIdx(w,d);let best=null;
  for(const id in store.days){const o=store.days[id];if(!o.ex||!o.ex[exId])continue;
-  const i=orderIdx(o.w,o.d);if(i>=cur)continue;if(filter&&!filter(o.ex[exId]))continue;
+  const i=orderIdx(o.w,o.d);if(i>=cur)continue;if(filter&&!filter(o.ex[exId],o))continue;
   if(loggedSets(o.ex[exId]).length&&(!best||i>best.i))best={i,w:o.w,d:o.d,e:o.ex[exId]}}
  return best;
 }
@@ -752,11 +763,12 @@ let pickList=[];
 function renderSheet(){
  const el=document.getElementById('sheet');if(!sheet.open){el.innerHTML='';el.classList.remove('show');return}
  // Keep the scroll position when the same screen re-renders (e.g. tapping "servings"); start at the top on a new screen
- const vkey=sheet.sel?'sel:'+(sheet.sel.id||sheet.sel.code||sheet.sel.name)+':'+(sheet.editId||''):'tab:'+sheet.tab;
+ const vkey=sheet.fix?'fix:'+sheet.fix.orig.name:sheet.sel?'sel:'+(sheet.sel.id||sheet.sel.code||sheet.sel.name)+':'+(sheet.editId||''):'tab:'+sheet.tab;
  const oldBody=el.querySelector('.sbody');const keepY=oldBody&&sheet._vkey===vkey?oldBody.scrollTop:0;sheet._vkey=vkey;
  el.classList.add('show');const mealName=(MEALS.find(m=>m[0]===sheet.meal)||[0,'Food'])[1];
  let body='';
- if(sheet.sel){body=renderAmount()}
+ if(sheet.fix){body=renderFix()}
+ else if(sheet.sel){body=renderAmount()}
  else{
   const tabs=[['search','Search'],['scan','Scan'],['mine','My foods'],['quick','Quick add']].map(t=>`<button class="${sheet.tab===t[0]?'on':''}" data-a="stab" data-v="${t[0]}">${t[1]}</button>`).join('');
   body=`<div class="stabs">${tabs}</div>`;
@@ -784,15 +796,10 @@ function renderSheet(){
    body+=store.meals.length?store.meals.map((m,i)=>{const t={kcal:0,p:0,c:0};m.items.forEach(e=>{const x=entryMacros(e);t.kcal+=x.kcal;t.p+=x.p;t.c+=x.c});
     return `<div class="mealrow"><button class="frow" data-a="faddmeal" data-i="${i}"><span class="fn">${esc(m.name)}<small>${m.items.length} items</small></span><span class="fm">${Math.round(t.kcal)} kcal<small>P ${r1(t.p)} g, C ${r1(t.c)} g</small></span></button><button class="xbtn" data-a="fdelmeal" data-i="${i}" aria-label="Delete meal">×</button></div>`}).join(''):`<p class="muted small">Log a few foods in a meal, then tap "Save as meal" to reuse it in one tap.</p>`;
    body+=`<h3>My foods</h3>`;
-   body+=store.myFoods.length?store.myFoods.map((f,i)=>{pickList.push(f);return `<div class="mealrow">${foodRow(f,pickList.length-1)}<button class="xbtn" data-a="fdelmine" data-i="${i}" aria-label="Delete food">×</button></div>`}).join(''):`<p class="muted small">Foods you save or create appear here and work without signal.</p>`;
+   body+=store.myFoods.length?store.myFoods.map((f,i)=>{pickList.push(f);return `<div class="mealrow">${foodRow(f,pickList.length-1)}<button class="xbtn" data-a="feditmine" data-i="${i}" aria-label="Edit food">✎</button><button class="xbtn" data-a="fdelmine" data-i="${i}" aria-label="Delete food">×</button></div>`}).join(''):`<p class="muted small">Foods you save or create appear here and work without signal.</p>`;
    const c=sheet.create;
    body+=`<details class="create" ${sheet.createOpen?'open':''}><summary class="more" data-a="fcreatetoggle">+ Create a food</summary>
-    <div class="fld"><label>Name</label><input data-sf="create.name" value="${esc(c.name||'')}"></div>
-    <div class="fld"><label>Brand (optional)</label><input data-sf="create.brand" value="${esc(c.brand||'')}"></div>
-    <h3>Measured in</h3><div class="seg"><button class="${c.unit!=='ml'?'on':''}" data-a="fcunit" data-v="g">Grams</button><button class="${c.unit==='ml'?'on':''}" data-a="fcunit" data-v="ml">ml (drinks)</button></div>
-    <h3>Nutrition values are</h3><div class="seg"><button class="${c.basis==='100'?'on':''}" data-a="fbasis" data-v="100">Per 100 ${c.unit==='ml'?'ml':'g'}</button><button class="${c.basis==='serv'?'on':''}" data-a="fbasis" data-v="serv">Per serving</button></div>
-    ${c.basis==='serv'?`<div class="grid2"><div class="fld"><label>Serving size in ${c.unit==='ml'?'ml':'g'} (optional)</label><input inputmode="decimal" data-sf="create.sg" value="${esc(c.sg||'')}"></div><div class="fld"><label>Serving name</label><input data-sf="create.sl" value="${esc(c.sl||'')}" placeholder="e.g. 1 bar"></div></div>`:''}
-    <div class="grid3" style="margin-top:10px">${[['kcal','kcal'],['p','Protein g'],['c','Carbs g'],['f','Fat g'],['fib','Fibre g']].map(x=>`<div class="fld"><label>${x[1]}</label><input inputmode="decimal" data-sf="create.${x[0]}" value="${esc(c[x[0]]||'')}"></div>`).join('')}</div>
+    ${createFields(c)}
     ${sheet.createErr?`<p id="createerr" class="cerr">${esc(sheet.createErr)}</p>`:''}<button class="big" data-a="fcreate">Save food</button></details>`;
   }else{
    const q=sheet.quick;
@@ -802,16 +809,49 @@ function renderSheet(){
     <button class="big" data-a="fquick">Add to ${esc(mealName)}</button>`;
   }
  }
- el.innerHTML=`<div class="sheetin"><div class="shead2"><button class="xbtn big2" data-a="${sheet.sel&&!sheet.editId?'fback':'sheetclose'}" aria-label="Back">${sheet.sel&&!sheet.editId?'‹':'×'}</button><h2>${sheet.editId?'Edit food':'Add to '+esc(mealName)}</h2></div><div class="sbody">${body}</div></div>`;
+ const back=sheet.fix?'ffixcancel':sheet.sel&&!sheet.editId?'fback':'sheetclose';
+ el.innerHTML=`<div class="sheetin"><div class="shead2"><button class="xbtn big2" data-a="${back}" aria-label="Back">${back==='sheetclose'?'×':'‹'}</button><h2>${sheet.fix?'Fix food':sheet.editId?'Edit food':'Add to '+esc(mealName)}</h2></div><div class="sbody">${body}</div></div>`;
  if(keepY){const nb=el.querySelector('.sbody');if(nb)nb.scrollTop=keepY}
  if(sheet.tab==='scan'&&!sheet.sel&&sheet.scanning)startScan(true);
 }
+function createFields(c){
+ return `<div class="fld"><label>Name</label><input data-sf="create.name" value="${esc(c.name||'')}"></div>
+    <div class="fld"><label>Brand (optional)</label><input data-sf="create.brand" value="${esc(c.brand||'')}"></div>
+    <h3>Measured in</h3><div class="seg"><button class="${c.unit!=='ml'?'on':''}" data-a="fcunit" data-v="g">Grams</button><button class="${c.unit==='ml'?'on':''}" data-a="fcunit" data-v="ml">ml (drinks)</button></div>
+    <h3>Nutrition values are</h3><div class="seg"><button class="${c.basis==='100'?'on':''}" data-a="fbasis" data-v="100">Per 100 ${c.unit==='ml'?'ml':'g'}</button><button class="${c.basis==='serv'?'on':''}" data-a="fbasis" data-v="serv">Per serving</button></div>
+    ${c.basis==='serv'?`<div class="grid2"><div class="fld"><label>Serving size in ${c.unit==='ml'?'ml':'g'} (optional)</label><input inputmode="decimal" data-sf="create.sg" value="${esc(c.sg||'')}"></div><div class="fld"><label>Serving name</label><input data-sf="create.sl" value="${esc(c.sl||'')}" placeholder="e.g. 1 bar"></div></div>`:''}
+    <div class="grid3" style="margin-top:10px">${[['kcal','kcal'],['p','Protein g'],['c','Carbs g'],['f','Fat g'],['fib','Fibre g']].map(x=>`<div class="fld"><label>${x[1]}</label><input inputmode="decimal" data-sf="create.${x[0]}" value="${esc(c[x[0]]||'')}"></div>`).join('')}</div>`}
+// Calories that don't match the macros usually mean a typo or a bad database entry. Returns the expected kcal, or null if it looks fine.
+function kcalCheck(p){if(!p)return null;const calc=4*(+p.p||0)+4*(+p.c||0)+9*(+p.f||0)+2*(+p.fib||0);if(!(calc>=40))return null;const k=+p.kcal||0;
+ return (k<calc*.7&&calc-k>30)||(k>calc*1.35&&k-calc>30)?Math.round(calc):null}
+function sameFood(x,o){if(!x||x.quick||!o||!!x.unitOnly!==!!o.unitOnly)return false;if(o.code&&x.code&&x.code===o.code)return true;
+ const n=v=>String(v||'').trim().toLowerCase();return n(x.name)===n(o.name)&&n(x.brand)===n(o.brand)}
+function countFoodEntries(o){let n=0;Object.values(store.food).forEach(d=>(d.entries||[]).forEach(e=>{if(sameFood(e,o))n++}));return n}
+function buildFood(c,o){const sg=num(c.sg);let f;
+ if(c.basis==='serv'&&!(sg>0)){const v=x=>num(c[x])||0;f={unitOnly:true,per100:{kcal:v('kcal'),p:v('p'),c:v('c'),f:v('f'),fib:v('fib')},servingG:100,servingLabel:(c.sl||'').trim()||'1 serving'}}
+ else{const k=c.basis==='serv'?100/sg:1;const v=x=>(num(c[x])||0)*k;const keep=o&&!o.unitOnly&&c.basis!=='serv';
+  f={unitOnly:false,per100:{kcal:v('kcal'),p:v('p'),c:v('c'),f:v('f'),fib:v('fib')},servingG:c.basis==='serv'?sg:(keep?o.servingG||null:null),servingLabel:c.basis==='serv'?(c.sl||'').trim():(keep?o.servingLabel||'':'')}}
+ f.name=(c.name||'').trim();f.brand=(c.brand||'').trim();f.liquid=c.unit==='ml'&&!f.unitOnly;return f}
+function kcalMsg(bad,f,k){return `Protein, carbs and fat add up to about ${bad} kcal ${f.unitOnly?'per serving':'per 100 '+uL(f)}, but the calories say ${Math.round(k)}.`}
+function openFix(f,from,idx){const r=x=>x==null||x===''?'':String(Math.round(x*10)/10);const u=!!f.unitOnly;
+ sheet.fix={from,idx,orig:{id:f.id||'',name:f.name,brand:f.brand||'',code:f.code||'',src:f.src||'',unitOnly:u,servingG:f.servingG||null,servingLabel:f.servingLabel||''}};
+ sheet.create={name:tidyName(f.name),brand:f.brand||'',unit:f.liquid?'ml':'g',basis:u?'serv':'100',sg:'',sl:u?(f.servingLabel||''):'',kcal:r(f.per100.kcal),p:r(f.per100.p),c:r(f.per100.c),f:r(f.per100.f),fib:r(f.per100.fib),fixPast:true};
+ sheet.createErr='';sheet.createWarned=false;renderSheet()}
+function renderFix(){const c=sheet.create,o=sheet.fix.orig,n=countFoodEntries(o);
+ const cur=buildFood(c,o),bad=kcalCheck(cur.per100);
+ return `<div class="amt"><p class="aname">${esc(tidyName(o.name))}</p><p class="muted small" style="margin:4px 0 6px">Copy the values from the pack. Per 100 ${c.unit==='ml'?'ml':'g'} is usually easiest to check.</p>
+  ${bad?`<p class="warnline">${esc(kcalMsg(bad,cur,cur.per100.kcal))} One of the numbers is probably wrong.</p>`:''}
+  ${createFields(c)}
+  ${n?`<label class="check" style="border:0;margin-top:8px"><input type="checkbox" data-sf="create.fixPast" ${c.fixPast?'checked':''}><span>Also correct ${n} logged ${n===1?'entry':'entries'} of this food</span></label>`:''}
+  ${sheet.createErr?`<p id="createerr" class="cerr">${esc(sheet.createErr)}</p>`:''}
+  <button class="big" data-a="ffixsave">Save changes</button><button class="ghost" style="width:100%;margin-top:10px" data-a="ffixcancel">Cancel</button></div>`}
 function amountGrams(){const v=num(sheet.g);if(v==null)return 0;return sheet.unit==='serv'&&sheet.sel.servingG?v*sheet.sel.servingG:v}
 function renderAmount(){
  const f=sheet.sel;const m=entryMacros({g:amountGrams(),per100:f.per100});
  const mealChips=MEALS.map(x=>`<button class="${sheet.meal===x[0]?'on':''}" data-a="fmealpick" data-v="${x[0]}">${x[1]}</button>`).join('');
  return `<div class="amt"><p class="aname">${esc(tidyName(f.name))}</p>${f.brand?`<p class="muted" style="margin:0">${esc(f.brand)}</p>`:''}
   <p class="muted small" style="margin:4px 0 0">${f.unitOnly?'Per serving':'Per 100 '+uL(f)}: ${macroLine(f.per100)}${f.src==='builtin'?' (typical values)':''}</p>
+  ${(()=>{const bad=kcalCheck(f.per100);return (bad?`<p class="warnline">Check the calories: ${esc(kcalMsg(bad,f,f.per100.kcal).replace(/^P/,'p'))}</p>`:'')+(f.src!=='builtin'?`<button class="more" data-a="ffix">${bad?'Fix this food':'Wrong values? Fix this food'}</button>`:'')})()}
   <div class="arow"><input id="amtin" inputmode="decimal" data-sf="g" value="${esc(sheet.g)}" aria-label="Amount">
    ${f.unitOnly?`<span class="muted">servings${f.servingLabel&&f.servingLabel!=='1 serving'?' ('+esc(f.servingLabel)+')':''}</span>`:f.servingG?`<div class="seg"><button class="${sheet.unit==='g'?'on':''}" data-a="funit" data-v="g">${uL(f)==='ml'?'ml':'grams'}</button><button class="${sheet.unit==='serv'?'on':''}" data-a="funit" data-v="serv">servings</button></div>`:`<span class="muted">${uL(f)==='ml'?'ml':'grams'}</span>`}</div>
   ${f.servingG&&!f.unitOnly&&sheet.unit==='serv'?`<p class="muted small" style="margin:4px 0 0">1 serving = ${fmtG(f.servingG)} ${uL(f)}${f.servingLabel&&f.servingLabel.trim().toLowerCase()!==fmtG(f.servingG)+' '+uL(f)?' ('+esc(f.servingLabel)+')':''}</p>`:''}
@@ -946,7 +986,32 @@ async function handleFoodAction(a,b){
   }else{const k=c.basis==='serv'?100/sg:1;const v=x=>(num(c[x])||0)*k;
    f={id:'my'+newId(),src:'custom',name:c.name.trim(),brand:(c.brand||'').trim(),per100:{kcal:v('kcal'),p:v('p'),c:v('c'),f:v('f'),fib:v('fib')},servingG:c.basis==='serv'?sg:null,servingLabel:c.basis==='serv'?(c.sl||'').trim():''}}
   if(c.unit==='ml'&&!f.unitOnly)f.liquid=true;
-  store.myFoods.unshift(f);saveFood();sheet.create={basis:'100'};sheet.createErr='';sheet.createOpen=false;selectFood(f);toast('Saved to My foods')}
+  {const bad=kcalCheck(f.per100);if(bad&&!sheet.createWarned){sheet.createWarned=true;return err(kcalMsg(bad,f,f.per100.kcal)+' Check the pack, then tap Save food again to keep these values.')}}
+  store.myFoods.unshift(f);sheet.createWarned=false;saveFood();sheet.create={basis:'100'};sheet.createErr='';sheet.createOpen=false;selectFood(f);toast('Saved to My foods')}
+ else if(a==='ffix'){openFix(sheet.sel,'amount')}
+ else if(a==='feditmine'){const f=store.myFoods[+b.dataset.i];if(f)openFix(f,'mine',+b.dataset.i)}
+ else if(a==='ffixcancel'){sheet.fix=null;sheet.create={basis:'100'};sheet.createErr='';sheet.createOpen=false;renderSheet()}
+ else if(a==='ffixsave'){const c=sheet.create,fx=sheet.fix,o=fx.orig;
+  const err=t=>{sheet.createErr=t;renderSheet();const e=document.getElementById('createerr');if(e)e.scrollIntoView({block:'center'})};
+  if(!(c.name||'').trim())return err('Give the food a name.');
+  if(['kcal','p','c','f','fib'].map(x=>num(c[x])).every(v=>v==null))return err('Enter at least the calories or protein.');
+  if(c.basis==='serv'&&num(c.sg)!=null&&!(num(c.sg)>0))return err('Serving size must be more than 0.');
+  const nf=buildFood(c,o);const bad=kcalCheck(nf.per100);
+  if(bad&&!sheet.createWarned){sheet.createWarned=true;return err(kcalMsg(bad,nf,nf.per100.kcal)+' Check the pack, then tap Save changes again to keep these values.')}
+  const sameUnit=!!nf.unitOnly===!!o.unitOnly;
+  const apply=x=>{const sug=x.per100&&x.per100.sug!=null?{sug:x.per100.sug}:{};x.name=nf.name;x.brand=nf.brand;x.per100=Object.assign(sug,nf.per100);x.servingG=nf.servingG;x.servingLabel=nf.servingLabel;x.liquid=nf.liquid;x.unitOnly=nf.unitOnly};
+  let n=0;
+  if(sameUnit){Object.values(store.food).forEach(d=>(d.entries||[]).forEach(e=>{if(sameFood(e,o)&&(c.fixPast||(sheet.editId&&e.id===sheet.editId))){apply(e);n++}}));
+   store.meals.forEach(m=>(m.items||[]).forEach(e=>{if(sameFood(e,o))apply(e)}))}
+  store.myFoods.forEach((x,i)=>{if((fx.from==='mine'&&i===fx.idx)||sameFood(x,o)){apply(x);if(x.src==='off')x.src='custom'}});
+  store.recent.forEach(x=>{if(sameFood(x,o))apply(x)});
+  saveFood();
+  if(fx.from==='amount'){const cur=sheet.sel,gNow=amountGrams();const ns=Object.assign({},cur);apply(ns);sheet.sel=ns;
+   if(!!ns.unitOnly!==!!cur.unitOnly){sheet.unit=ns.unitOnly?'serv':'g';sheet.g=ns.unitOnly?'1':String(r1(gNow))}
+   else if(sheet.unit==='serv'&&!ns.unitOnly&&!ns.servingG){sheet.unit='g';sheet.g=String(r1(gNow))}}
+  sheet.fix=null;sheet.create={basis:'100'};sheet.createErr='';sheet.createWarned=false;sheet.createOpen=false;
+  render();renderSheet();
+  toast(n?'Food updated, '+n+(n===1?' entry':' entries')+' corrected':!sameUnit?'Food updated. Logged entries kept their old values because the unit changed.':'Food updated')}
  else if(a==='fdelmine'){const f=store.myFoods[+b.dataset.i];if(f&&confirm('Delete "'+f.name+'" from My foods?')){store.myFoods.splice(+b.dataset.i,1);saveFood();renderSheet()}}
  else if(a==='fsavemeal'){const es=(foodDay(iso).entries||[]).filter(e=>e.meal===b.dataset.meal);const name=prompt('Name this meal','My '+b.dataset.meal);if(!name)return;
   store.meals.unshift({name,items:JSON.parse(JSON.stringify(es)).map(e=>{delete e.id;return e})});saveFood();toast('Meal saved')}
@@ -956,7 +1021,7 @@ async function handleFoodAction(a,b){
  return true;
 }
 document.addEventListener('input',ev=>{const t=ev.target;
- if(t.dataset.sf&&sheet.open){const v=t.type==='checkbox'?t.checked:t.value;setPath(sheet,t.dataset.sf,v);if(t.dataset.sf.startsWith('create.')&&sheet.createErr){sheet.createErr='';const e=document.getElementById('createerr');if(e)e.remove()}
+ if(t.dataset.sf&&sheet.open){const v=t.type==='checkbox'?t.checked:t.value;setPath(sheet,t.dataset.sf,v);if(t.dataset.sf.startsWith('create.')&&t.dataset.sf!=='create.fixPast')sheet.createWarned=false;if(t.dataset.sf.startsWith('create.')&&sheet.createErr){sheet.createErr='';const e=document.getElementById('createerr');if(e)e.remove()}
   if(t.dataset.sf==='g'){const p=document.getElementById('apreview');if(p)p.innerHTML=previewHTML(entryMacros({g:amountGrams(),per100:sheet.sel.per100}))}
   if(t.dataset.sf==='q'){const loc=document.querySelector('.sbody');if(!sheet.q||sheet.q.length<3||!loc)return;clearTimeout(t._t);t._t=setTimeout(()=>{if(document.activeElement===t){const pos=t.selectionStart;renderSheet();const n=document.getElementById('sq');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}}},350)}}
  if(t.dataset.tg){store.settings.targets[t.dataset.tg]=t.value;saveFood()}});
@@ -1095,11 +1160,14 @@ function foodPool(){const map=new Map();const since=addDays(isoToday(),-21);cons
  store.myFoods.forEach(f=>add(f,1));store.recent.forEach(f=>add(f,1));BUILTIN.forEach(f=>add(f,0));
  return [...map.values()]}
 function roundAmt(g){return g<60?Math.max(5,Math.round(g/5)*5):Math.round(g/10)*10}
-function portionFor(f,need,per){ // per: 'p' or 'kcal'; returns grams (or servings*100 for serving-only foods) and what it covers
- const unit=f.per100[per];if(!(unit>0))return null;
- if(f.unitOnly){let s=Math.ceil(need/unit*2)/2;s=Math.min(Math.max(s,.5),2);return{g:s*100,servings:s,covers:s*unit}}
- if(f.servingG){let s=Math.ceil(need/(unit*f.servingG/100)*2)/2;s=Math.min(Math.max(s,.5),2);const g=s*f.servingG;if(g*f.per100.kcal/100<=500)return{g,servings:s,covers:g*unit/100}}
- let g=roundAmt(need/unit*100);const maxG=Math.min(400,Math.round(450/Math.max(f.per100.kcal,1)*100));g=Math.max(20,Math.min(g,maxG));return{g,covers:g*unit/100}}
+function portionFor(f,need,per,cap){ // per: 'p', 'c' or 'kcal'; cap: the most this portion may add (e.g. room left under the carb max)
+ const unit=f.per100[per];if(!(unit>0))return null;cap=cap>0?cap:Infinity;
+ if(f.unitOnly){let s=Math.ceil(need/unit*2)/2;s=Math.min(Math.max(s,.5),2);if(s*unit>cap)s=Math.floor(cap/unit*2)/2;if(s<.5)return null;return{g:s*100,servings:s,covers:s*unit}}
+ if(f.servingG){const per1=unit*f.servingG/100;let s=Math.ceil(need/per1*2)/2;s=Math.min(Math.max(s,.5),2);let capped=false;if(s*per1>cap){s=Math.floor(cap/per1*2)/2;capped=true}
+  if(s>=.5&&!(capped&&s*per1<need)){const g=s*f.servingG;if(g*f.per100.kcal/100<=500)return{g,servings:s,covers:g*unit/100}}}
+ let g=roundAmt(need/unit*100);const maxG=Math.min(400,Math.round(450/Math.max(f.per100.kcal,1)*100));g=Math.max(20,Math.min(g,maxG));
+ if(g*unit/100>cap){g=Math.floor(cap/unit*100/5)*5;if(g<20)return null}
+ return{g,covers:g*unit/100}}
 function gapIdeas(iso){
  const t=dayTotals(iso),T=store.settings.targets,pmin=num(T.pmin),kt=num(T.kcal);
  if(!hasFood(iso))return null;
@@ -1114,7 +1182,8 @@ function gapIdeas(iso){
   const c=foodPool().filter(x=>{const f=x.food.per100;return f.c>=5&&f.c*4/Math.max(f.kcal,1)>=.25&&!skip.test(x.food.name)&&!sugary(x.food)}).map(x=>{const f=x.food.per100;return Object.assign(x,{score:(x.own?15+x.uses*2:0)+(f.fib||0)/Math.max(f.c,1)*40+f.p/Math.max(f.kcal,1)*150})}).sort((a,b)=>b.score-a.score);
   const own=c.filter(x=>x.own).slice(0,3),rest=c.filter(x=>!x.own);const pick=[];let legumes=0;
   for(const x of [...own,...rest]){const leg=/lentil|bean|chickpea/i.test(x.food.name);if(leg&&legumes>=2&&!x.own)continue;if(leg)legumes++;pick.push(x);if(pick.length===4)break}
-  return{kind:'c',need,items:pick.map(x=>({food:x.food,own:x.own,por:portionFor(x.food,Math.min(need,35),'c')})).filter(x=>x.por)}}
+  const room=num(T.c)?num(T.c)-t.c:null;
+  return{kind:'c',need,items:pick.map(x=>({food:x.food,own:x.own,por:portionFor(x.food,Math.min(need,35),'c',room)})).filter(x=>x.por)}}
  if(kt&&pmin&&t.p>=pmin&&t.kcal<kt-250){const need=kt-t.kcal;
   const c=foodPool().filter(x=>x.food.per100.kcal>=150&&(x.food.per100.p>=3||x.food.per100.c>=10)).map(x=>Object.assign(x,{score:(x.own?300+x.uses*20:0)+x.food.per100.kcal/4+x.food.per100.p*2})).sort((a,b)=>b.score-a.score);
   const pick=c.slice(0,4);return{kind:'kcal',need,items:pick.map(x=>({food:x.food,own:x.own,por:portionFor(x.food,Math.min(need,350),'kcal')})).filter(x=>x.por)}}
@@ -1267,7 +1336,7 @@ function unitCols(ex){
   case 'bw':return[['reps','reps'+per,'numeric']];
   case 'sec':return[['sec','seconds'+per,'numeric']];
   case 'val':return[['v',ex.valLabel+per,'decimal']];
-  case 'skill':return[['min','minutes','decimal'],['sec','best hold s','numeric']];
+  case 'skill':return ex.skillLog?[['reps',ex.skillLog.reps,'numeric'],['sec',ex.skillLog.sec,'numeric']]:[['min','minutes','decimal'],['sec','best hold s','numeric']];
  }
 }
 function prevSummary(ex,e){
@@ -1277,7 +1346,7 @@ function prevSummary(ex,e){
   if(ex.unit==='bw')return (s.reps||'NR')+' reps';
   if(ex.unit==='sec')return (s.sec||'NR')+' s';
   if(ex.unit==='val')return s.v||'NR';
-  if(ex.unit==='skill')return (s.min||'NR')+' min, best hold '+(s.sec||'NR')+' s';
+  if(ex.unit==='skill'){if(num(s.reps)!=null)return s.reps+' '+(ex.skillLog?ex.skillLog.short:'reps')+(num(s.sec)!=null?', top hold '+s.sec+' s':'');return (s.min||'NR')+' min, best hold '+(s.sec||'NR')+' s'}
  }).join(', ');
 }
 function wasCls(ex,col,was,now){const a=num(was),b=num(now);if(a==null||b==null)return '';const better=(ex.assist&&col==='kg')?b<a:b>a;return better?' up':''}
@@ -1293,6 +1362,7 @@ function prevFeel(prev){
  if((o.notes||'').trim())out+=`<div class="lastnote"><b>Session note:</b> ${esc(o.notes.trim())}</div>`;
  return out}
 function hintFor(ex,w,prev,dk,e){
+ if(ex.skillLog&&ex.skillLog.how)return ex.skillLog.how[ex.id]||ex.skillLog.how.hs;
  const p=phase(w),[lo,hi]=rng(ex.reps);
  if(!prev){if(ex.unit==='kg'&&!ex.assist)return 'First time logging '+(ex.variants?varOf(ex,e):'this')+'. Choose a load you could lift for about '+(hi+2)+' reps, so you finish each set with a couple in reserve.';return ''}
  const ls=loggedSets(prev.e);
@@ -1476,11 +1546,11 @@ function renderProgress(){
  // Skills
  h+=`<div class="card"><h2>Skills</h2><div class="tbl"><table><tr><th>Week</th><th>Push-up</th><th>Pull-up</th><th>Handstand</th></tr>`;
  let any=false;
- for(let w=1;w<=16;w++){const cell=(ladder,ids,mode)=>{let lv=null,best=null,ass=null;
+ for(let w=1;w<=16;w++){const cell=(ladder,ids,mode)=>{let lv=null,best=null,ass=null,reps=null;
    ids.forEach(([id,d])=>{const e=(getDay(w,d).ex||{})[id];if(!e)return;const ls=loggedSets(e);if(!ls.length)return;
     lv=Math.max(lv||0,+(e.level||currentLevel(ladder,w,d,id)));
-    ls.forEach(s=>{const v=num(mode==='hold'?s.sec:s.reps);if(v!=null&&(best==null||v>best))best=v;if(num(s.kg)!=null)ass=ass==null?num(s.kg):Math.min(ass,num(s.kg))})});
-   if(lv==null)return '';any=true;return `L${lv}${best!=null?', '+best+(mode==='hold'?' s':' reps'):''}${mode==='pull'&&ass!=null?', '+ass+' kg':''}`};
+    ls.forEach(s=>{const v=num(mode==='hold'?s.sec:s.reps);if(v!=null&&(best==null||v>best))best=v;if(mode==='hold'&&num(s.reps)!=null)reps=Math.max(reps||0,num(s.reps));if(num(s.kg)!=null)ass=ass==null?num(s.kg):Math.min(ass,num(s.kg))})});
+   if(lv==null)return '';any=true;return `L${lv}${reps!=null&&HAND_LOG[lv]?', '+reps+' '+HAND_LOG[lv].short:''}${best!=null?', '+best+(mode==='hold'?' s':' reps'):''}${mode==='pull'&&ass!=null?', '+ass+' kg':''}`};
   const pu=cell('push',[['push','tue'],['pum','thu']],'reps'),pl=cell('pull',[['pull','tue'],['pull2','fri']],'pull'),hs=cell('hand',[['hs','tue'],['hs2','fri']],'hold');
   if(pu||pl||hs)h+=`<tr><td>${w}</td><td>${pu||'NR'}</td><td>${pl||'NR'}</td><td>${hs||'NR'}</td></tr>`}
  h+=`</table></div>${any?'':'<p class="small muted">Your levels and best reps fill in automatically as you log Tuesday and Friday.</p>'}</div>`;
