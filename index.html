@@ -496,12 +496,14 @@ const HAND_LOG={
 const PLAN={
  mon:{type:'lift',title:"Glutes A",sub:"Heavy tension + core. Your main progression day.",
   walk:"Optional 10–15 min easy walk after dinner.",
-  warm:["3–4 min easy walk or bike","3–5 relaxed 360° breaths","5–8 reps each: bodyweight squat, hip hinge, reverse lunge, adductor rock-back","8–10 bodyweight glute bridges","Hip thrust ramp-up sets (weights shown on the hip thrust card)","Squat pattern ramp-up sets (shown on its card)"],
+  warm:["3–4 min easy walk or bike","3–5 relaxed 360° breaths","5–8 reps each: bodyweight squat, hip hinge, reverse lunge, adductor rock-back","8–10 bodyweight glute bridges","Hip thrust ramp-up sets (weights shown on the hip thrust card)","RDL and squat pattern ramp-up sets (shown on their cards)"],
   cool:LEGCOOL,
   ex:[
    {id:'ht',name:"Hip thrust",variants:["Smith","Barbell","Machine glute drive","Weighted bridge"],sets:3,reps:"6–8",kind:'comp',rest:"2.5–3 min",restS:165,unit:'kg',main:1,cue:"Ribs over pelvis. Full hip extension from the glutes, not a lumbar arch."},
-   {id:'sq',name:"Deep squat pattern",variants:["Hack squat","Leg press","Smith squat","Belt squat"],sets:3,reps:"8–10",kind:'comp',rest:"2–3 min",restS:150,unit:'kg',main:1,cue:"Deepest pain-free range you can control. Keep the pelvis stable."},
-   {id:'lc',name:"Seated leg curl",sets:2,reps:"10–15",kind:'fixed',rir:"1–2",rest:"90 s",restS:90,unit:'kg',cue:"Control the return. Keep your hips planted."},
+   {id:'rdl',v:2,name:"Romanian deadlift",variants:["Dumbbell RDL","Barbell RDL","Smith RDL"],sets:3,reps:"8–10",kind:'comp',rest:"2 min",restS:120,unit:'kg',main:1,cue:"Soft knees. Push your hips back as if closing a car door with your bum, keeping the weights close to your legs. Lower until you feel a strong hamstring stretch (usually around mid-shin), then stand up by squeezing your glutes. Don't lean back at the top. Breathe out on the way up."},
+   {id:'sq',name:"Deep squat pattern",variants:["Hack squat","Leg press","Smith squat","Belt squat"],sets:3,reps:"8–10",kind:'comp',rest:"2–3 min",restS:150,unit:'kg',main:1,cue:"Deepest pain-free range you can control. Keep the pelvis stable.",
+    v2:{sets:2,variants:["Leg press, feet high and wide","Hack squat","Smith squat","Belt squat","Leg press"],cue:"Glute focus: on the leg press, put your feet high and wide on the platform with toes slightly out, and lower until your hips are about to tuck under. On other machines, sit back and go as deep as you can control. Push through your heels."}},
+   {id:'lc',v:1,name:"Seated leg curl",sets:2,reps:"10–15",kind:'fixed',rir:"1–2",rest:"90 s",restS:90,unit:'kg',cue:"Control the return. Keep your hips planted."},
    {id:'abA',name:"Hip abduction",alt:'abC',variants:["Seated machine","Cable","Side-lying"],sets:2,reps:"15–25",kind:'iso',rir:"0–2",rest:"60–90 s",restS:75,unit:'kg',cue:"Controlled range, no bouncing."},
    {id:'dbug',name:"Dead bug with long exhale",ladder:'dbug',sets:2,reps:"6–8",per:"per side",kind:'core',rest:"45–60 s",restS:50,unit:'bw',cue:"Exhale through the hard part. No doming or pressure symptoms. Progress lever length before load."}
   ]},
@@ -522,11 +524,12 @@ const PLAN={
  wed:{type:'rest',title:"Walk + yoga",sub:"Recovery. 30–45 min walk at an easy-to-brisk conversational pace, then 20–30 min yoga.",walkMain:"30–45 min",walkSteps:"about 3,000–4,500",yoga:true},
  thu:{type:'lift',title:"Glutes B",sub:"Unilateral + lengthened glute work, plus a small push-up dose.",
   walk:"Optional 10–15 min walk after a meal.",
-  warm:["3–4 min easy walk or bike","3–5 relaxed 360° breaths","5–6 unweighted split squats per side","5–8 hip hinges","Adductor rock-backs, 5–8 per side","Split squat ramp-up sets per side (weights shown on its card)","1 easy practice set for the hip extension"],
+  warm:["3–4 min easy walk or bike","3–5 relaxed 360° breaths","5–6 unweighted split squats per side","5–8 hip hinges","Adductor rock-backs, 5–8 per side","Lunge or split squat ramp-up sets per side (shown on its card)","1 easy practice set for the hip extension"],
   cool:LEGCOOL,
   ex:[
-   {id:'bss',name:"Split squat",variants:["Bulgarian split squat","Reverse lunge","Smith split squat","High step-up"],sets:3,reps:"8–10",per:"per leg",kind:'comp',rest:"2–3 min",restS:150,unit:'kg',main:1,cue:"Longer stride and a slight forward lean. Keep the pelvis controlled."},
-   {id:'bx',name:"Hip extension",variants:["45° back extension","Cable pull-through","B-stance DB RDL"],sets:2,reps:"10–15",kind:'comp',rest:"90–120 s",restS:105,unit:'kg',main:1,cue:"Hinge at the hips. Stop at body-line neutral, no lumbar hyperextension. Only try the RDL if your back is comfortable."},
+   {id:'bss',name:"Split squat",variants:["Bulgarian split squat","Reverse lunge","Smith split squat","High step-up"],sets:3,reps:"8–10",per:"per leg",kind:'comp',rest:"2–3 min",restS:150,unit:'kg',main:1,cue:"Longer stride and a slight forward lean. Keep the pelvis controlled.",
+    v2:{variants:["Deficit reverse lunge","Bulgarian split squat","Reverse lunge","Smith split squat","High step-up"],cue:"Glute focus: stand on a low step (5–10 cm) and step back into a long lunge, leaning your chest slightly forward. Keep your front shin fairly upright, lower until your back knee nearly touches the floor, and drive up through your front heel. For Bulgarian split squats: long stride, front knee over mid-foot, sink your hips down and back."}},
+   {id:'bx',name:"Hip extension",variants:["45° back extension","Cable pull-through","B-stance DB RDL"],sets:2,reps:"10–15",kind:'comp',rest:"90–120 s",restS:105,unit:'kg',main:1,cue:"Hinge at the hips and round your upper back slightly over the pad to keep the work in your glutes. Squeeze your glutes to come up and stop when your body is in a straight line, without arching your lower back."},
    {id:'lc2',name:"Leg curl",variants:["Seated","Lying"],sets:2,reps:"10–15",kind:'fixed',rir:"1–2",rest:"90 s",restS:90,unit:'kg',cue:"Controlled lowering. No hip lifting."},
    {id:'calf',name:"Calf raise",optional:1,sets:2,reps:"8–15",kind:'fixed',rir:"1–2",rest:"60–90 s",restS:75,unit:'kg',cue:"Full comfortable range. First thing to skip on poor-recovery weeks."},
    {id:'pum',name:"Push-up micro-dose",ladder:'push',sets:2,reps:"5–10",kind:'fixed',rir:"2",rest:"90 s",restS:90,unit:'bw',cue:"Same level and technique as Tuesday. Stop well before fatigue."},
@@ -538,10 +541,10 @@ const PLAN={
   cool:LEGCOOL,
   ex:[
    {id:'hs2',name:"Easy handstand micro-dose",ladder:'hand',sets:1,reps:"5–8 min",kind:'skill',rir:"Stop early",rest:"45–90 s",restS:60,unit:'skill',cue:"Stay at or below Tuesday's level. No grinding. Keep it easy in every phase."},
-   {id:'gd',name:"Glute drive",variants:["Machine glute drive","Weighted glute bridge","Smith hip thrust (moderate)"],sets:2,reps:"10–15",kind:'comp',rest:"90–120 s",restS:105,unit:'kg',main:1,cue:"Control the lowering. Finish with the glutes, not the low back."},
-   {id:'su',name:"Step-up",variants:["High step-up","Light Smith reverse lunge","Supported split squat"],sets:2,reps:"10–12",per:"per leg",kind:'fixed',rir:"2",rest:"2 min",restS:120,unit:'kg',main:1,cue:"Drive through the working leg; don't push off the back leg. Keep it slightly easier than Thursday."},
+   {id:'gd',name:"Glute drive",v2:{sets:3,gdFixed:1},variants:["Machine glute drive","Weighted glute bridge","Smith hip thrust (moderate)"],sets:2,reps:"10–15",kind:'comp',rest:"90–120 s",restS:105,unit:'kg',main:1,cue:"Control the lowering. Finish with the glutes, not the low back."},
+   {id:'su',name:"Step-up",variants:["High step-up","Light Smith reverse lunge","Supported split squat"],sets:2,reps:"10–12",per:"per leg",kind:'fixed',rir:"2",rest:"2 min",restS:120,unit:'kg',main:1,cue:"Glute focus: use a high box (about knee height or a bit higher), lean your chest forward and drive up through the heel of your working leg. Don't push off your back foot. Lower slowly. Keep it slightly easier than Thursday."},
    {id:'abC',name:"Hip abduction",alt:'abA',variants:["Seated machine","Cable","Side-lying"],sets:2,reps:"15–25",kind:'iso',rir:"0–1",rest:"60–90 s",restS:75,unit:'kg',cue:"Controlled range. Pause briefly if it helps. Hard but technically clean."},
-   {id:'kb',name:"Cable kickback",optional:1,skipF:1,sets:2,reps:"12–20",per:"per leg",kind:'iso',rir:"0–2",rest:"60–90 s",restS:75,unit:'kg',cue:"Pelvis square. Move through the hip, not the lumbar spine."},
+   {id:'kb',name:"Cable kickback",optional:1,skipF:1,v2:{optional:0},sets:2,reps:"12–20",per:"per leg",kind:'iso',rir:"0–2",rest:"60–90 s",restS:75,unit:'kg',cue:"Pelvis square. Move through the hip, not the lumbar spine."},
    {id:'pull2',name:"Pull micro-dose",ladder:'pull',variants:["Assisted pull-up","Lat pulldown"],sets:2,reps:"6–10",kind:'fixed',rir:"2",rest:"2 min",restS:120,unit:'kg',kgLabel:'kg / assist',assist:1,cue:"Same pattern as Tuesday. Stop fresh. Reduce assistance only when Tuesday is also progressing."},
    {id:'cc',name:"Core or carry",optional:1,variants:["Side plank","Pallof press","Suitcase carry"],sets:2,reps:"20–40 s or 20–40 m",per:"per side",kind:'core',rest:"60 s",restS:60,unit:'val',valLabel:'s / m / reps',cue:"No symptoms. Optional if time and recovery are good."}
   ]},
@@ -563,6 +566,7 @@ const PHASENOTE={
 };
 function rirFor(ex,w,light){
  const p=phase(w);
+ if(ex.id==='rdl'&&p!=='Deload'){const sw=isoToWD(PLAN2_FROM);if(sw&&w<sw.w+2)return '2–3 (learning)'}
  if(ex.kind==='core')return 'Controlled';
  if(ex.kind==='skill')return p==='Deload'?'Easy only':ex.rir;
  if(p==='Deload')return '3–4';
@@ -576,7 +580,7 @@ function setsFor(ex,w,light){
  const p=phase(w);let s=ex.sets,opt=0,skip=false,amberCut=false;
  if(ex.skipF&&p==='Foundation')skip=true;
  if(p!=='Foundation'&&ex.optAfterF)opt=1;
- if(ex.id==='gd'){if(p==='Build')opt=1;if(['Growth','Consolidate','Assessment'].includes(p)){s=3;opt=0}}
+ if(ex.id==='gd'){if(p==='Build'&&!ex.gdFixed)opt=1;if(['Growth','Consolidate','Assessment'].includes(p)){s=3;opt=0}}
  if(ex.id==='ht'&&w>=11&&(p==='Growth'||p==='Consolidate'))opt=1;
  if(ex.id==='bss'&&w>=12&&(p==='Growth'||p==='Consolidate'))opt=1;
  if(p==='Deload'){s=Math.max(1,Math.round(s*0.6));opt=0;if(ex.id==='kb')skip=true}
@@ -634,7 +638,17 @@ function orderIdx(w,d){return (w-1)*7+DAYS.indexOf(d)}
 function entrySets(e){if(!e||!e.sets)return[];return Object.keys(e.sets).sort((a,b)=>a-b).map(k=>e.sets[k]).filter(Boolean)}
 function loggedSets(e){return entrySets(e).filter(s=>s&&(s.done||num(s.reps)!=null||num(s.v)!=null||num(s.sec)!=null||num(s.min)!=null))}
 function isPressVar(e){return /press/i.test((e&&e.variant)||'')}
+// The plan changed on 3 Nov 2026 (more glute work, less quad work). Earlier sessions keep the plan they were done with.
+const PLAN2_FROM='2026-11-03';
+function isV2(w,d){return dateOf(w,DAYS.indexOf(d))>=parseDate(PLAN2_FROM)}
+function exVisible(ex,w,d,o){if(!ex.v)return true;if(o&&o.ex&&loggedSets(o.ex[ex.id]).length)return true;return ex.v===2?isV2(w,d):!isV2(w,d)}
+function dayExList(w,d,o){const p=PLAN[d];if(!p||!p.ex)return[];o=o||getDay(w,d);return p.ex.filter(ex=>exVisible(ex,w,d,o))}
+// Sessions logged before the change keep the default variant they were shown (the first choice changed for some exercises)
+const OLD_DEFAULT_VARIANT={sq:'Hack squat',bss:'Bulgarian split squat'};
+function migratePlan2(){let n=0;for(const id in store.days){const o=store.days[id];if(!o||!o.ex||!o.w||!o.d||isV2(o.w,o.d))continue;
+ for(const k in OLD_DEFAULT_VARIANT){const e=o.ex[k];if(e&&!e.variant&&(e.sets||e.note||e.rir)){e.variant=OLD_DEFAULT_VARIANT[k];n++}}}return n}
 function effectiveEx(ex,e,w,dk){if(!ex)return ex;e=e||{};
+ if(ex.v2&&w&&dk&&isV2(w,dk))ex=Object.assign({},ex,ex.v2);
  if(ex.assist&&e.variant==='Lat pulldown')return Object.assign({},ex,{assist:0,kgLabel:'kg'});
  if(ex.pressAlt&&isPressVar(e))return Object.assign({},ex,{name:'Shoulder press',noVariantInName:1,unit:'kg',ladder:null,repsFromLevel:0,reps:'8–12',cue:'Seated with your back supported, ribs down. Press up and slightly back, then lower with control to about chin height. Stop 1–2 reps short.'});
  if(ex.unit==='skill'&&ex.ladder==='hand'){const lv=+(e.level||currentLevel('hand',w,dk,ex.id)),m=HAND_LOG[lv];if(m)return Object.assign({},ex,{skillLog:m,handLv:lv});return Object.assign({},ex,{handLv:lv})}
@@ -670,7 +684,7 @@ function sessionDone(w,d){const o=getDay(w,d);if(o.complete)return true;if(!TRAI
 function dayProgress(w,d){
  const p=PLAN[d],o=getDay(w,d);if(p.type!=='lift')return{done:!!o.complete||num(getPath(o,'daily.steps'))!=null||num(getPath(o,'daily.walk'))!=null||!!getPath(o,'daily.yoga'),total:0};
  let t=0,dn=0;const light=getPath(o,'checkin.light');
- p.ex.forEach(ex=>{const r=setsFor(ex,w,light);if(r.skip)return;t+=r.s;dn+=Math.min(r.s,loggedSets(o.ex&&o.ex[ex.id]).length)});
+ dayExList(w,d,o).forEach(ex0=>{const ex=effectiveEx(ex0,o.ex&&o.ex[ex0.id],w,d);const r=setsFor(ex,w,light);if(r.skip)return;t+=r.s;dn+=Math.min(r.s,loggedSets(o.ex&&o.ex[ex.id]).length)});
  return{done:dn,total:t,complete:!!o.complete};
 }
 
@@ -1032,7 +1046,7 @@ function protAvg(w){const v=DAYS.map((dk,i)=>{const iso=isoOf(dateOf(w,i));if(ha
 
 /* ================= WARM-UP (RAMP-UP) SETS ================= */
 // [fraction of working weight, reps, optional]
-const WU={ht:[[.3,'8–10'],[.55,'5'],[.75,'3'],[.875,'1–2',1]],sq:[[.5,'6'],[.75,'3']],bss:[[.5,'5 per leg'],[.75,'3 per leg']],gd:[[.5,'6'],[.7,'4'],[.85,'2']]};
+const WU={ht:[[.3,'8–10'],[.55,'5'],[.75,'3'],[.875,'1–2',1]],rdl:[[.5,'6'],[.75,'3']],sq:[[.5,'6'],[.75,'3']],bss:[[.5,'5 per leg'],[.75,'3 per leg']],gd:[[.5,'6'],[.7,'4'],[.85,'2']]};
 function suggestedKg(ex,w,prev){
  if(!prev)return null;const ls=loggedSets(prev.e);const kgs=ls.map(s=>num(s.kg)).filter(v=>v!=null);if(!kgs.length)return null;
  const kg=Math.max(...kgs);if(phase(w)==='Deload')return kg;const [,hi]=rng(ex.reps);
@@ -1056,7 +1070,8 @@ function renderWarmup(ex,w,dk,e){
 
 /* ================= FORM VIDEOS ================= */
 // YouTube search phrases for every exercise, alternative and skill level
-const VQ={
+const VQ={'Dumbbell RDL':'dumbbell romanian deadlift glutes form','Barbell RDL':'barbell romanian deadlift glutes form','Smith RDL':'smith machine romanian deadlift form',
+ 'Leg press, feet high and wide':'leg press feet high and wide glutes','Deficit reverse lunge':'deficit reverse lunge glutes form',
  'Pike push-ups':'','Dumbbell press':'seated dumbbell shoulder press form','Machine press':'machine shoulder press form',
  'Heel taps (knees bent, lower one foot to tap the floor)':'dead bug heel taps','Dead bug (opposite arm and leg reach out)':'dead bug exercise form',
  'Dead bug with a 3 s hold at full reach':'dead bug with hold core exercise','Loaded dead bug (light dumbbell or band in your hands)':'weighted dead bug form',
@@ -1285,9 +1300,9 @@ function renderDay(){
  h+=renderCheckin(w,dk,o,p);
  const cp=CHECKPOINTS[w+'-'+dk];if(cp)h+=renderMeasure(w,dk,o,cp);
  if(p.type==='lift'){
-  if(light==='red')h+=`<div class="card"><h2>Recovery day</h2><p>Red means rest and address the underlying issue: illness, marked pelvic symptoms, escalating back pain, dizziness or unusual bleeding. A gentle walk or restorative yoga is fine if it feels good. You can still open the workout below if things change.</p></div>`;
+  if(light==='red')h+=`<div class="card"><h2>Recovery day</h2><p>Red means rest and address the underlying issue: illness, marked pelvic symptoms, pain that's getting worse, dizziness or unusual bleeding. A gentle walk or restorative yoga is fine if it feels good. You can still open the workout below if things change.</p></div>`;
   h+=renderChecklist(w,dk,o,'warm','Warm-up',p.warm,light!=='red','Fuel: some protein and carbs 1–3 h before. Warm-up sets are not logged.');
-  p.ex.forEach(ex=>h+=renderEx(w,dk,o,ex,light));
+  dayExList(w,dk,o).forEach(ex=>h+=renderEx(w,dk,o,ex,light));
   h+=renderChecklist(w,dk,o,'cool','Cool-down',p.cool,false);
  }else{
   h+=renderRest(w,dk,o,p);
@@ -1308,12 +1323,11 @@ function renderCheckin(w,dk,o,p){
  const pel=c.pelvic,bl=c.bleed;
  return `<details class="card" ${dOpen('ci-'+w+'-'+dk,p.type==='lift'&&!L)}><summary><h2>How are you today?</h2><span class="count">${L?({green:'Green',amber:'Amber',red:'Red'})[L]:'Check in'} <span class="chev">›</span></span></summary>
  <div class="lights">${lb('green','g','Green')}${lb('amber','a','Amber')}${lb('red','r','Red')}</div>
- <p class="small muted" style="margin:6px 0 0">Green: normal energy, no concerning symptoms. Amber: poor sleep or unusually tired. Red: illness, pelvic symptoms, escalating back pain, dizziness or unusual bleeding.</p>${ban}
+ <p class="small muted" style="margin:6px 0 0">Green: normal energy, no concerning symptoms. Amber: poor sleep or unusually tired. Red: illness, pelvic symptoms, pain that's getting worse, dizziness or unusual bleeding.</p>${ban}
  <div class="grid2">
   <div class="fld"><label>Sleep last night (h)</label><input inputmode="decimal" data-f="checkin.sleep" value="${esc(c.sleep||'')}"></div>
   <div class="fld"><label>Morning weight (kg)</label><input inputmode="decimal" data-f="checkin.weight" value="${esc(c.weight||'')}"></div>
   <div class="fld"><label>Energy (1–5)</label><input inputmode="numeric" data-f="checkin.energy" value="${esc(c.energy||'')}"></div>
-  <div class="fld"><label>Back pain (0–10)</label><input inputmode="numeric" data-f="checkin.back" value="${esc(c.back||'')}"></div>
  </div>
  <h3>Pelvic symptoms (leaking, heaviness, doming)?</h3>
  <div class="seg"><button class="${pel==='no'?'on':''}" data-a="seg" data-f="checkin.pelvic" data-v="no">No</button><button class="${pel==='yes'?'on':''}" data-a="seg" data-f="checkin.pelvic" data-v="yes">Yes</button></div>
@@ -1447,19 +1461,22 @@ function renderDaily(w,dk,o,p){
 }
 function weekWeightAvg(w){const v=DAYS.map(d=>num(getPath(getDay(w,d),'checkin.weight'))).filter(x=>x!=null);return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10:null}
 function photoURL(ref){if(!ref||!ref.pid)return null;return photoURLs[ref.pid]||null}
+function firstThigh(){for(const k of CP_ORDER){const [w,d]=k.split('-');const v=num(getPath(getDay(+w,d),'meas.thigh'));if(v!=null)return{k,v}}return null}
 function renderMeasure(w,dk,o,label){
  const m=o.meas||{},ph=m.photos||{};const avg=weekWeightAvg(w);
  const base=getDay(1,'mon').meas||{};
  const delta=(k)=>{if(label==='Baseline')return '';const a=num(m[k]),b=num(base[k]);return a!=null&&b!=null?` <span class="muted">(${a-b>=0?'+':''}${Math.round((a-b)*10)/10} cm vs baseline)</span>`:''};
+ const ft=firstThigh(),tDelta=(()=>{const a=num(m.thigh);if(a==null||!ft||ft.k===w+'-'+dk)return '';const d=a-ft.v;return ` <span class="muted">(${d>=0?'+':''}${Math.round(d*10)/10} cm vs ${esc(CHECKPOINTS[ft.k].replace(/ \(.*\)/,''))})</span>`})();
  const slot=(k,n)=>{const u=photoURL(ph[k]);return `<div class="phwrap"><label class="ph">${u?`<img src="${esc(u)}" alt="${n} photo">`:`<span class="plus">+</span><span>${n}</span>`}<span class="lab">${n}</span><input type="file" accept="image/*" data-photo="${k}" aria-label="${n} photo from library"></label><button class="ghostbtn" data-a="ghostcam" data-k="${k}"><span class="gi">◎</span> Ghost cam</button></div>`};
  return `<div class="card" style="border:2px solid var(--accent)"><h2>${esc(label)}: measure + photos</h2>
- <p class="small">Measure in the morning, same tape position and posture. Glutes at the fullest point. Photos: same light, distance and pose.</p>
- <div class="grid3">
+ <p class="small">Measure in the morning, same tape position and posture. Glutes at the fullest point. Thigh: right leg, halfway between your hip crease and the top of your kneecap. Photos: same light, distance and pose.</p>
+ <div class="grid2">
   <div class="fld"><label>Glutes (cm)</label><input inputmode="decimal" data-f="meas.glute" value="${esc(m.glute||'')}"></div>
+  <div class="fld"><label>Thigh (cm)</label><input inputmode="decimal" data-f="meas.thigh" value="${esc(m.thigh||'')}"></div>
   <div class="fld"><label>Waist (cm)</label><input inputmode="decimal" data-f="meas.waist" value="${esc(m.waist||'')}"></div>
   <div class="fld"><label>Weight avg (kg)</label><input inputmode="decimal" data-f="meas.weight" value="${esc(m.weight||'')}" placeholder="${avg!=null?avg:''}"></div>
  </div>
- <p class="small" style="margin:6px 0 0">${delta('glute')?'Glutes'+delta('glute'):''}${delta('waist')?'<br>Waist'+delta('waist'):''}${avg!=null?`<br><span class="muted">This week's weigh-in average: ${avg} kg</span>`:''}</p>
+ <p class="small" style="margin:6px 0 0">${delta('glute')?'Glutes'+delta('glute'):''}${tDelta?'<br>Thigh'+tDelta:''}${delta('waist')?'<br>Waist'+delta('waist'):''}${avg!=null?`<br><span class="muted">This week's weigh-in average: ${avg} kg</span>`:''}</p>
  <div class="photos">${slot('front','Front')}${slot('side','Side')}${slot('back','Back')}</div>
  <p class="status" style="margin-top:6px">Photos stay on your phone. They're included in backup files.</p>
  <textarea class="note" data-f="meas.notes" placeholder="Symptoms, recovery, anything notable">${esc(m.notes||'')}</textarea></div>`;
@@ -1525,10 +1542,10 @@ function renderProgress(){
  let h=renderInsights()+renderConsistency()+renderPRWall();
  // Measurements
  const rows=CP_ORDER.map(k=>{const [w,d]=k.split('-');const m=getDay(+w,d).meas||{};return{k,label:CHECKPOINTS[k],w:+w,d,m}});
- const b=rows[0].m;const dl=(a,bb)=>{a=num(a);bb=num(bb);return a!=null&&bb!=null?(a-bb>=0?'+':'')+Math.round((a-bb)*10)/10:''};
- h+=`<div class="card"><h2>Measurements</h2><div class="tbl"><table><tr><th>Checkpoint</th><th>Date</th><th>Glutes</th><th>Δ</th><th>Waist</th><th>Δ</th><th>Weight</th></tr>
- ${rows.map((r,i)=>`<tr><td>${esc(r.label.replace(/ \(.*\)/,''))}</td><td>${fmtShort(dateOf(r.w,DAYS.indexOf(r.d)))}</td><td>${esc(r.m.glute||'NR')}</td><td>${i?dl(r.m.glute,b.glute):''}</td><td>${esc(r.m.waist||'NR')}</td><td>${i?dl(r.m.waist,b.waist):''}</td><td>${esc(r.m.weight||weekWeightAvg(r.w)||'NR')}</td></tr>`).join('')}
- </table></div><p class="small muted">NR means not recorded. Look for a slow upward glute trend over 8–12 weeks.</p></div>`;
+ const b=rows[0].m,ft=firstThigh();const dl=(a,bb)=>{a=num(a);bb=num(bb);return a!=null&&bb!=null?(a-bb>=0?'+':'')+Math.round((a-bb)*10)/10:''};
+ h+=`<div class="card"><h2>Measurements</h2><div class="tbl"><table><tr><th>Checkpoint</th><th>Date</th><th>Glutes</th><th>Δ</th><th>Thigh</th><th>Δ</th><th>Waist</th><th>Δ</th><th>Weight</th></tr>
+ ${rows.map((r,i)=>`<tr><td>${esc(r.label.replace(/ \(.*\)/,''))}</td><td>${fmtShort(dateOf(r.w,DAYS.indexOf(r.d)))}</td><td>${esc(r.m.glute||'NR')}</td><td>${i?dl(r.m.glute,b.glute):''}</td><td>${esc(r.m.thigh||'NR')}</td><td>${ft&&r.k!==ft.k?dl(r.m.thigh,ft.v):''}</td><td>${esc(r.m.waist||'NR')}</td><td>${i?dl(r.m.waist,b.waist):''}</td><td>${esc(r.m.weight||weekWeightAvg(r.w)||'NR')}</td></tr>`).join('')}
+ </table></div><p class="small muted">NR means not recorded. Thigh changes are compared with your first thigh measurement. Look for a slow upward glute trend over 8–12 weeks.</p></div>`;
  // Photos compare
  const ang=view.angle||'side';const withP=rows.filter(r=>r.m.photos&&photoURL(r.m.photos[ang]));
  const first=withP[0],last=withP.length>1?withP[withP.length-1]:null;
@@ -1536,7 +1553,7 @@ function renderProgress(){
  <div class="compare">${first?`<figure><img src="${esc(photoURL(first.m.photos[ang]))}" alt=""><figcaption>${esc(first.label)}</figcaption></figure>`:'<div class="empty">Add photos on your checkpoint days</div>'}
  ${last?`<figure><img src="${esc(photoURL(last.m.photos[ang]))}" alt=""><figcaption>${esc(last.label)}</figcaption></figure>`:'<div class="empty">Your next checkpoint will appear here</div>'}</div></div>`;
  // Key lifts
- const key=[['ht','mon','Hip thrust'],['sq','mon','Squat pattern'],['bss','thu','Split squat'],['bx','thu','Hip extension'],['gd','fri','Glute drive']];
+ const key=[['ht','mon','Hip thrust'],['rdl','mon','Romanian deadlift'],['sq','mon','Squat pattern'],['bss','thu','Split squat / lunge'],['bx','thu','Hip extension'],['gd','fri','Glute drive']];
  h+=`<div class="card"><h2>Main lifts</h2><p class="small muted" style="margin:0 0 4px">Best set each week (heaviest load, then most reps).</p>`;
  key.forEach(([id,d,name])=>{const pts=[];let lastTxt='No sets logged yet';
   for(let w=1;w<=16;w++){const e=(getDay(w,d).ex||{})[id];const ls=loggedSets(e).filter(s=>num(s.kg)!=null);if(!ls.length)continue;
@@ -1555,7 +1572,7 @@ function renderProgress(){
   if(pu||pl||hs)h+=`<tr><td>${w}</td><td>${pu||'NR'}</td><td>${pl||'NR'}</td><td>${hs||'NR'}</td></tr>`}
  h+=`</table></div>${any?'':'<p class="small muted">Your levels and best reps fill in automatically as you log Tuesday and Friday.</p>'}</div>`;
  // Weekly summary
- h+=`<div class="card"><h2>Weekly summary</h2><div class="tbl"><table><tr><th>Wk</th><th>Sessions</th><th>Steps/day</th><th>Yoga</th><th>Protein</th><th>Sleep</th><th>Energy</th><th>Back</th><th>Pelvic</th><th>Weight</th></tr>`;
+ h+=`<div class="card"><h2>Weekly summary</h2><div class="tbl"><table><tr><th>Wk</th><th>Sessions</th><th>Steps/day</th><th>Yoga</th><th>Protein</th><th>Sleep</th><th>Energy</th><th>Pelvic</th><th>Weight</th></tr>`;
  const tp=todayPos();
  for(let w=1;w<=Math.max(tp.w,1);w++){const ds=DAYS.map(d=>getDay(w,d));
   const avg=(f)=>{const v=ds.map(f).map(num).filter(x=>x!=null);return v.length?Math.round(v.reduce((a,b2)=>a+b2,0)/v.length*10)/10:'NR'};
@@ -1564,7 +1581,7 @@ function renderProgress(){
   const sess=TRAIN.filter(d=>sessionDone(w,d)).length;
   const yoga=ds.filter(o=>getPath(o,'daily.yoga')).length;
   const pel=ds.some(o=>getPath(o,'checkin.pelvic')==='yes')?'Yes':ds.some(o=>getPath(o,'checkin.pelvic')==='no')?'No':'NR';
-  h+=`<tr><td>${w}</td><td>${sess}/4</td><td>${(()=>{const v=avg(o=>getPath(o,'daily.steps'));return v==='NR'?v:fmtSteps(v)})()}</td><td>${yoga}</td><td>${protAvg(w)}</td><td>${avg(o=>getPath(o,'checkin.sleep'))}</td><td>${avg(o=>getPath(o,'checkin.energy'))}</td><td>${mx(o=>getPath(o,'checkin.back'))}</td><td>${pel}</td><td>${weekWeightAvg(w)??'NR'}</td></tr>`}
+  h+=`<tr><td>${w}</td><td>${sess}/4</td><td>${(()=>{const v=avg(o=>getPath(o,'daily.steps'));return v==='NR'?v:fmtSteps(v)})()}</td><td>${yoga}</td><td>${protAvg(w)}</td><td>${avg(o=>getPath(o,'checkin.sleep'))}</td><td>${avg(o=>getPath(o,'checkin.energy'))}</td><td>${pel}</td><td>${weekWeightAvg(w)??'NR'}</td></tr>`}
  h+=`</table></div></div>`;
  h+=`<div class="card"><h2>Export</h2><p class="small">A spreadsheet of every logged set (unlogged planned sets show as NR), or a full backup you can restore later.</p>
  <div class="seg"><button data-a="csv">Sets CSV</button><button data-a="foodcsv">Food CSV</button><button data-a="backup">Backup</button></div></div>`;
@@ -1588,7 +1605,7 @@ function renderGuide(){
  <div class="card"><h2>Symptoms and safety</h2><ul>
   <li><b>Pelvic floor:</b> leaking, heaviness, bulging, pelvic pain or worsening pressure: reduce load, exhale through the hard part and consider pelvic-health physio.</li>
   <li><b>Doming:</b> regress the exercise or lever and improve breathing and stacking before progressing.</li>
-  <li><b>Low back:</b> prefer supported and machine patterns if symptoms flare. No lumbar hyperextension at hip thrust or back-extension lockout. Pain that sharpens, radiates, causes numbness or is worse the next day means modify the exercise.</li>
+  <li><b>Low back:</b> if back pain comes back, swap to supported or machine versions for a while. Don't arch your lower back at the top of hip thrusts or back extensions.</li>
   <li><b>Urgent back red flags:</b> new bowel or bladder problems, saddle numbness, new leg weakness. Get urgent medical assessment.</li>
   <li><b>Bleeding:</b> irregular, heavy or changed bleeding is a medical question, not a programming one. Get it reviewed before pushing hard into later blocks. Seek urgent help for heavy bleeding, large clots, dizziness, fainting, fever or pelvic pain.</li>
   <li><b>Breastfeeding:</b> moderate exercise is generally compatible. Feeding or pumping before training can help comfort. Avoid aggressive calorie restriction during a muscle-gain block.</li>
@@ -1828,7 +1845,7 @@ function csvCell(v){v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace
 function exportCSV(){
  const tp=todayPos();const rows=[['Week','Phase','Date','Day','Exercise','Variant','Level','Target','Set','kg','Reps','Seconds','Metres','Minutes','Value','Done','Final RIR','Note']];
  for(let w=1;w<=16;w++)TRAIN.forEach(dk=>{const di=DAYS.indexOf(dk);if(orderIdx(w,dk)>orderIdx(tp.w,DAYS[tp.d]))return;const o=getDay(w,dk);const light=getPath(o,'checkin.light');
-  PLAN[dk].ex.forEach(ex0=>{const e=(o.ex||{})[ex0.id]||{};const ex=effectiveEx(ex0,e,w,dk);const r=setsFor(ex,w,light);if(r.skip)return;const n=Math.max(r.s,Object.keys(e.sets||{}).length);
+  dayExList(w,dk,o).forEach(ex0=>{const e=(o.ex||{})[ex0.id]||{};const ex=effectiveEx(ex0,e,w,dk);const r=setsFor(ex,w,light);if(r.skip)return;const n=Math.max(r.s,Object.keys(e.sets||{}).length);
    for(let i=0;i<n;i++){const s=(e.sets||{})[i]||{};const f=k=>s[k]!==undefined&&s[k]!==''?s[k]:'NR';const dt=dateOf(w,di);
     rows.push([w,phase(w),dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'),DAYNAMES[di],ex.name,e.variant||(ex.variants?ex.variants[0]:''),e.level||'',r.s+' × '+ex.reps,i+1,f('kg'),f('reps'),f('sec'),f('m'),f('min'),f('v'),s.done?'Yes':'No',e.rir||'NR',e.note||''])}})});
  saveFile('glute-tracker-sets.csv','\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\n'),'text/csv');
@@ -1869,6 +1886,7 @@ function restore(file){const r=new FileReader();r.onload=async()=>{try{const j=J
  Object.assign(store.settings,j.settings||{});for(const id in j.days){store.days[id]=j.days[id]}
  if(j.food)Object.assign(store.food,j.food);if(j.myFoods)store.myFoods=j.myFoods;if(j.meals)store.meals=j.meals;if(j.recent)store.recent=j.recent;initFoodStore();
  for(const id in store.days){const o=store.days[id];const ph=o.meas&&o.meas.photos;if(ph)for(const a in ph){if(ph[a]&&!ph[a].pid)delete ph[a]}}
+ try{migratePlan2()}catch(e){}
  if(j.photos)for(const k in j.photos){try{const b=await (await fetch(j.photos[k])).blob();await idbPut(k,b)}catch(e){}}
  cacheLocal();await loadPhotos();render();toast('Backup restored')}catch(e){toast('That file is not a tracker backup')}};r.readAsText(file)}
 
@@ -1877,6 +1895,7 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.s
 // When the day changes while the app sits open, move to the new day on return
 let lastDayKey=new Date().toDateString();
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){const k=new Date().toDateString();if(k!==lastDayKey){lastDayKey=k;Object.assign(view,todayPos());view.fdate=isoToday();if(!sheet.open)render()}}});
+try{if(migratePlan2())cacheLocal()}catch(e){}
 loadPhotos();
 render();
 </script>
